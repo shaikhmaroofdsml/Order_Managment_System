@@ -37,6 +37,53 @@ public class ProductController {
 
     }
 
+    // Pagination + Sorting
+
+    @GetMapping("/page-sort")
+    public Page<ProductResponse> getProducts(
+
+            @RequestParam(defaultValue = "0")
+            int page,
+
+            @RequestParam(defaultValue = "5")
+            int size,
+
+            @RequestParam(defaultValue = "id")
+            String field,
+
+            @RequestParam(defaultValue = "asc")
+            String direction) {
+
+        return productService.getProductWithSorting(page, size, field, direction);
+    }
+
+//    Filtering
+
+    @GetMapping("/category_filter") // GET /api/products/category_filter?name=Electronics&page=0&size=5
+    public Page<ProductResponse> category(
+
+            @RequestParam String name,
+
+            @RequestParam(defaultValue = "0")
+            int page,
+
+            @RequestParam(defaultValue = "10")
+            int size) {
+
+        return productService
+                .getProductsByCategory(name, page, size);
+    }
+
+
+
+
+
+
+
+
+
+
+
 
     // @Modyfying Example  ......
 

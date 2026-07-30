@@ -3,6 +3,8 @@ package com.ecommerce.order_management_system.repo;
 import com.ecommerce.order_management_system.entity.Category;
 import com.ecommerce.order_management_system.entity.Product;
 import jakarta.transaction.Transactional;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -12,6 +14,17 @@ import java.util.List;
 
 public interface ProductRepository extends JpaRepository<Product,Long> {
 
+
+    // Category Filter
+    Page<Product> findByCategory_Name(
+            String name,
+            Pageable pageable);
+
+
+
+
+
+    // @Modifying + @Transactional
 
     @Modifying
     @Transactional

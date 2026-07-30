@@ -12,11 +12,24 @@ public interface ProductService {
 
 //    Phase 6: Pagination, Sorting & Filtering
 
+    // Filtering
+    Page<ProductResponse> getProductsByCategory(
+            String category,
+            int page,
+            int size);
+
     // Pagination
     Page<ProductResponse> getProducts(int page, int size);
 
     // Sorting
     List<ProductResponse> sort(String field, String direction);
+
+    // Pagination + Sorting here
+    Page<ProductResponse> getProductWithSorting(
+            int page,
+            int size,
+            String field,
+            String direction);
 
 
 

@@ -26,6 +26,7 @@ public class ProductServiceImpl implements ProductService {
 //    Phase 6: Pagination, Sorting & Filtering
 
 
+    // Pagination
     @Override
     public Page<ProductResponse> getProducts(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
@@ -44,6 +45,38 @@ public class ProductServiceImpl implements ProductService {
                 .map(this::mapToResponse)
                 .toList();
     }
+
+    // Pagination + Sorting
+    @Override
+    public Page<ProductResponse> getProductWithSorting(int page, int size, String field, String direction) {
+        Sort sorting = direction.equalsIgnoreCase("desc")
+                ? Sort.by(field).descending()
+                : Sort.by(field).ascending();
+
+        Pageable pageable = PageRequest.of(page,size);
+
+        return productRepository
+                .findAll(pageable)
+                .map(this::mapToResponse);
+    }
+
+    // Filtering
+
+    @Override
+    public Page<ProductResponse> getProductsByCategory(
+            String category,
+            int page,
+            int size) {
+
+        Pageable pageable =
+                PageRequest.of(page, size);
+
+        return productRepository
+                .findByCategory_Name(category, pageable)
+                .map(this::mapToResponse);
+    }
+
+
 
 
     // @Modifying
