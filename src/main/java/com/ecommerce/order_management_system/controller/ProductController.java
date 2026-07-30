@@ -5,8 +5,10 @@ import com.ecommerce.order_management_system.dto.ProductResponse;
 import com.ecommerce.order_management_system.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -15,6 +17,25 @@ import java.util.List;
 public class ProductController {
 
     private final ProductService productService;
+
+//    Phase 6: Pagination, Sorting & Filtering
+
+    @GetMapping("/page")
+    public Page<ProductResponse> getProducts(
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "5") int size)
+    {
+        return productService.getProducts(page,size);
+    }
+
+
+        // Sorting
+    @GetMapping("/sort")
+    public List<ProductResponse> sort(@RequestParam String field, @RequestParam String direction)
+    {
+        return productService.sort(field,direction);
+
+    }
 
 
     // @Modyfying Example  ......

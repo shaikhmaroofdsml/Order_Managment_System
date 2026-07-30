@@ -8,6 +8,10 @@ import com.ecommerce.order_management_system.repo.CategoryRepository;
 import com.ecommerce.order_management_system.repo.ProductRepository;
 import com.ecommerce.order_management_system.service.ProductService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -19,6 +23,30 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
 
+//    Phase 6: Pagination, Sorting & Filtering
+
+
+    @Override
+    public Page<ProductResponse> getProducts(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Product> products = productRepository.findAll(pageable);
+        return products.map(this::mapToResponse);
+    }
+
+    // Sorting
+    @Override
+    public List<ProductResponse> sort(String field, String direction) {
+        Sort sort = direction.equalsIgnoreCase("desc")
+                ? Sort.by(field).descending()
+                : Sort.by(field).ascending();
+        return productRepository.findAll(sort)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+
+    // @Modifying
     @Override
     public void increaseStock(Long id, Integer qty) {
         productRepository.increaseStock(id, qty);
