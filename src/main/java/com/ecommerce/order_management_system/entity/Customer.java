@@ -3,6 +3,8 @@ package com.ecommerce.order_management_system.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "customer")
 @Getter
@@ -21,4 +23,7 @@ public class Customer {
 
     @Column(nullable = false, unique = true)
     private String email;
+
+    @OneToMany
+    private List<Order> orders;
 }

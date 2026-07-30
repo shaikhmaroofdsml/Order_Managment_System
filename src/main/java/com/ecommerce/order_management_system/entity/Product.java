@@ -3,6 +3,8 @@ package com.ecommerce.order_management_system.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.List;
+
 @Entity
 @Table(name = "products")
 @Getter
@@ -35,4 +37,8 @@ public class Product {
     @Builder.Default
     @Column(nullable = false)
     private Boolean active = true;
+
+
+    @OneToMany(mappedBy = "product")
+    private List<OrderItem> orderItems;
 }
