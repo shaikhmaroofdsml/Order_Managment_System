@@ -1,0 +1,502 @@
+
+Great. Now we are entering the **most important feature of Spring Data JPA**—**Derived Query Methods** (`findByXXX`). This is heavily asked in interviews and widely used in real projects.
+
+Your notes introduce this concept as writing repository methods where **Spring Data JPA generates the SQL automatically based on the method name**.
+
+---
+
+# Phase 3: Derived Query Methods
+
+## Goal
+
+Implement product search without writing SQL.
+
+Instead of writing SQL like:
+
+```sql
+SELECT * FROM products WHERE price > 500;
+```
+
+You simply write:
+
+```java
+findByPriceGreaterThan(Double price);
+```
+
+Spring Data JPA generates the SQL for you.
+
+---
+
+# Step 1: Update ProductRepository
+
+```java
+@Repository
+public interface ProductRepository
+        extends JpaRepository<Product, Long> {
+
+}
+```
+
+Now we'll add methods one by one.
+
+---
+
+# Method 1: Find By Name
+
+```java
+List<Product> findByName(String name);
+```
+
+Generated SQL
+
+```sql
+SELECT * FROM products
+WHERE name = ?;
+```
+
+---
+
+### API
+
+```
+GET /api/products/search/name?name=MacBook
+```
+
+---
+
+### Service
+
+```java
+public List<ProductResponse> findByName(String name);
+```
+
+Implementation
+
+```java
+@Override
+public List<ProductResponse> findByName(String name) {
+
+    return productRepository.findByName(name)
+            .stream()
+            .map(this::mapToResponse)
+            .toList();
+}
+```
+
+---
+
+# Method 2: Name Contains
+
+```java
+List<Product> findByNameContaining(String keyword);
+```
+
+Generated SQL
+
+```sql
+SELECT *
+FROM products
+WHERE name LIKE '%Book%';
+```
+
+---
+
+Example
+
+```
+GET /api/products/search?keyword=Book
+```
+
+Returns
+
+```
+MacBook
+
+Notebook
+
+Gaming Notebook
+```
+
+---
+
+# Method 3: Price Greater Than
+
+```java
+List<Product> findByPriceGreaterThan(Double price);
+```
+
+SQL
+
+```sql
+SELECT *
+FROM products
+WHERE price > ?;
+```
+
+API
+
+```
+GET /api/products/price?value=1000
+```
+
+---
+
+# Method 4: Price Less Than
+
+```java
+List<Product> findByPriceLessThan(Double price);
+```
+
+Example
+
+```
+GET /products/price/max?value=500
+```
+
+---
+
+# Method 5: Price Between
+
+```java
+List<Product> findByPriceBetween(Double min,
+                                 Double max);
+```
+
+SQL
+
+```sql
+SELECT *
+FROM products
+WHERE price BETWEEN 100 AND 500;
+```
+
+API
+
+```
+GET /products/range?min=100&max=500
+```
+
+---
+
+# Method 6: Find By Stock
+
+```java
+List<Product> findByStock(Integer stock);
+```
+
+---
+
+# Method 7: Low Stock
+
+```java
+List<Product> findByStockLessThan(Integer stock);
+```
+
+Useful for
+
+```
+Inventory Dashboard
+```
+
+---
+
+# Method 8: Find By Category
+
+Because Product has
+
+```java
+@ManyToOne
+private Category category;
+```
+
+Spring lets you navigate relationships.
+
+```java
+List<Product> findByCategory(Category category);
+```
+
+But clients only know the category ID, so your service can first load the `Category` entity and then call this repository method.
+
+---
+
+# Better Approach
+
+Spring can navigate nested properties.
+
+```java
+List<Product> findByCategoryName(String name);
+```
+
+No SQL.
+
+No JPQL.
+
+No joins.
+
+Spring generates everything.
+
+---
+
+Example
+
+```
+GET /products/category?name=Electronics
+```
+
+Returns
+
+```
+MacBook
+
+iPhone
+
+Samsung TV
+```
+
+---
+
+# Method 9: AND Condition
+
+```java
+List<Product> findByCategoryNameAndPriceLessThan(
+        String category,
+        Double price);
+```
+
+Generated SQL
+
+```sql
+SELECT *
+FROM products
+WHERE category='Electronics'
+AND price<1000;
+```
+
+---
+
+# Method 10: OR Condition
+
+```java
+List<Product> findByNameContainingOrDescriptionContaining(
+        String keyword,
+        String desc);
+```
+
+Searches both fields.
+
+---
+
+# Method 11: Ignore Case
+
+```java
+List<Product> findByNameIgnoreCase(String name);
+```
+
+```
+MacBook
+
+MACBOOK
+
+macbook
+```
+
+All match.
+
+---
+
+# Method 12: Starts With
+
+```java
+findByNameStartingWith(String text);
+```
+
+```
+Mac
+```
+
+Returns
+
+```
+MacBook
+
+Mac Mini
+
+Mac Studio
+```
+
+---
+
+# Method 13: Ends With
+
+```java
+findByNameEndingWith(String text);
+```
+
+Example
+
+```
+Pro
+```
+
+Returns
+
+```
+MacBook Pro
+
+Surface Pro
+```
+
+---
+
+# Method 14: Order By
+
+```java
+findByOrderByPriceAsc();
+```
+
+---
+
+Descending
+
+```java
+findByOrderByPriceDesc();
+```
+
+---
+
+# Method 15: Top Records
+
+```java
+findTop5ByOrderByPriceDesc();
+```
+
+Most expensive products.
+
+---
+
+# Method 16: First Record
+
+```java
+findFirstByOrderByPriceAsc();
+```
+
+Cheapest product.
+
+---
+
+# Method 17: Count
+
+```java
+long countByCategoryName(String category);
+```
+
+Returns
+
+```
+Electronics
+
+↓
+
+58
+```
+
+---
+
+# Method 18: Exists
+
+```java
+boolean existsByName(String name);
+```
+
+Useful before inserting.
+
+```java
+if(productRepository.existsByName(name))
+```
+
+Prevent duplicate products.
+
+---
+
+# Method 19: Delete
+
+```java
+deleteByName(String name);
+```
+
+Spring generates the delete query automatically.
+
+---
+
+# Final ProductRepository
+
+```java
+public interface ProductRepository extends JpaRepository<Product, Long> {
+
+    List<Product> findByName(String name);
+
+    List<Product> findByNameContaining(String keyword);
+
+    List<Product> findByPriceGreaterThan(Double price);
+
+    List<Product> findByPriceLessThan(Double price);
+
+    List<Product> findByPriceBetween(Double min, Double max);
+
+    List<Product> findByStockLessThan(Integer stock);
+
+    List<Product> findByCategory(Category category);
+
+    List<Product> findByCategoryName(String categoryName);
+
+    List<Product> findByCategoryNameAndPriceLessThan(
+            String category,
+            Double price);
+
+    List<Product> findByOrderByPriceAsc();
+
+    List<Product> findByOrderByPriceDesc();
+
+    List<Product> findTop5ByOrderByPriceDesc();
+
+    Product findFirstByOrderByPriceAsc();
+
+    long countByCategoryName(String category);
+
+    boolean existsByName(String name);
+}
+```
+
+---
+
+# Challenge (Must Complete)
+
+Insert at least **20 products** into your database and implement these APIs:
+
+1. Search by name
+2. Search by category
+3. Search by price range
+4. Search by stock
+5. Search by keyword
+6. Sort by price
+7. Top 5 expensive products
+8. Cheapest product
+9. Count products in a category
+10. Check if a product exists
+
+This exercise will give you hands-on experience with nearly all commonly used derived query patterns.
+
+---
+
+## Next Phase
+
+Once you're comfortable with derived queries, we'll move to **Custom Queries using `@Query`**, where you'll learn:
+
+* JPQL (Hibernate Query Language)
+* Native SQL queries
+* Named parameters (`@Param`)
+* DTO projections
+* `@Modifying` for update/delete operations
+* `@Transactional` for non-select queries
+
+That is the next major step after derived query methods in your Spring Data JPA learning path.

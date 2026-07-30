@@ -1,0 +1,752 @@
+Excellent! Now you're building the **heart of an e-commerce application**. This phase will teach you **transactions**, one of the most important concepts in Spring Boot and Spring Data JPA.
+
+---
+
+# Phase 8: Order Management & Transactions
+
+## Goal
+
+Implement this business flow:
+
+```text
+Customer Places Order
+        │
+        ▼
+Validate Customer
+        │
+        ▼
+Validate Products
+        │
+        ▼
+Check Stock
+        │
+        ▼
+Create Order
+        │
+        ▼
+Create Order Items
+        │
+        ▼
+Reduce Stock
+        │
+        ▼
+Save Payment
+        │
+        ▼
+Commit Transaction
+```
+
+If **any step fails**, everything should roll back.
+
+---
+
+# Database Design
+
+## Customer
+
+```text
+customer
+---------
+id
+name
+email
+```
+
+---
+
+## Orders
+
+```text
+orders
+---------
+id
+orderDate
+status
+totalAmount
+customer_id
+```
+
+---
+
+## OrderItem
+
+```text
+order_item
+-------------
+id
+quantity
+price
+order_id
+product_id
+```
+
+---
+
+## Payment
+
+```text
+payment
+----------
+id
+paymentType
+amount
+status
+paymentDate
+order_id
+```
+
+---
+
+# Relationships
+
+```text
+Customer
+    │
+OneToMany
+    │
+Orders
+    │
+OneToMany
+    │
+OrderItem
+    │
+ManyToOne
+    │
+Product
+
+Orders
+    │
+OneToOne
+    │
+Payment
+```
+
+This extends the association mapping concepts covered in your notes.
+
+---
+
+# Step 1: Order Entity
+
+```java
+@Entity
+@Table(name="orders")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Orders {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private LocalDateTime orderDate;
+
+    private Double totalAmount;
+
+    private String status;
+
+    @ManyToOne
+    @JoinColumn(name="customer_id")
+    private Customer customer;
+
+    @OneToMany(mappedBy="order",
+            cascade=CascadeType.ALL)
+    private List<OrderItem> orderItems;
+
+}
+```
+
+---
+
+# Step 2: OrderItem Entity
+
+```java
+@Entity
+@Getter
+@Setter
+public class OrderItem {
+
+    @Id
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    private Long id;
+
+    private Integer quantity;
+
+    private Double price;
+
+    @ManyToOne
+    @JoinColumn(name="order_id")
+    private Orders order;
+
+    @ManyToOne
+    @JoinColumn(name="product_id")
+    private Product product;
+
+}
+```
+
+---
+
+# Step 3: Payment Entity
+
+```java
+@Entity
+@Getter
+@Setter
+public class Payment {
+
+    @Id
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    private Long id;
+
+    private String paymentType;
+
+    private Double amount;
+
+    private String status;
+
+    private LocalDateTime paymentDate;
+
+    @OneToOne
+    @JoinColumn(name="order_id")
+    private Orders order;
+
+}
+```
+
+---
+
+# Step 4: DTO
+
+## OrderRequest
+
+```java
+@Data
+public class OrderRequest {
+
+    private Long customerId;
+
+    private List<OrderItemRequest> items;
+
+    private String paymentType;
+
+}
+```
+
+---
+
+## OrderItemRequest
+
+```java
+@Data
+public class OrderItemRequest {
+
+    private Long productId;
+
+    private Integer quantity;
+
+}
+```
+
+---
+
+# Step 5: Create Repositories
+
+```java
+OrderRepository
+
+OrderItemRepository
+
+PaymentRepository
+```
+
+All extend
+
+```java
+JpaRepository
+```
+
+---
+
+# Step 6: Order Service
+
+```java
+public interface OrderService {
+
+    OrderResponse placeOrder(
+            OrderRequest request);
+
+}
+```
+
+---
+
+# Step 7: Why @Transactional?
+
+Suppose customer buys
+
+```text
+Laptop
+
+Phone
+
+Keyboard
+```
+
+Flow
+
+```text
+Save Order
+
+↓
+
+Reduce Laptop Stock
+
+↓
+
+Reduce Phone Stock
+
+↓
+
+Payment Failed
+```
+
+Without transaction
+
+```text
+Order Saved
+
+Stock Reduced
+
+Payment Failed
+```
+
+Database becomes inconsistent.
+
+---
+
+With transaction
+
+```text
+Order Saved
+
+↓
+
+Stock Reduced
+
+↓
+
+Payment Failed
+
+↓
+
+Everything Rollback
+```
+
+Database returns to previous state.
+
+---
+
+# Step 8: Place Order
+
+```java
+@Service
+@RequiredArgsConstructor
+public class OrderServiceImpl
+        implements OrderService {
+
+    @Transactional
+    @Override
+    public OrderResponse placeOrder(
+            OrderRequest request){
+
+    }
+
+}
+```
+
+`@Transactional` ensures that all database operations succeed together or fail together.
+
+---
+
+# Step 9: Validate Customer
+
+```java
+Customer customer =
+customerRepository.findById(
+request.getCustomerId())
+
+.orElseThrow(
+()->new RuntimeException(
+"Customer not found"));
+```
+
+---
+
+# Step 10: Create Order
+
+```java
+Orders order = new Orders();
+
+order.setCustomer(customer);
+
+order.setOrderDate(
+LocalDateTime.now());
+
+order.setStatus("PLACED");
+```
+
+---
+
+# Step 11: Loop Through Products
+
+```java
+double total=0;
+
+List<OrderItem> items=
+new ArrayList<>();
+
+for(OrderItemRequest itemRequest
+:request.getItems()){
+
+}
+```
+
+---
+
+# Step 12: Validate Product
+
+```java
+Product product=
+productRepository.findById(
+
+itemRequest.getProductId())
+
+.orElseThrow(
+()->new RuntimeException(
+"Product not found"));
+```
+
+---
+
+# Step 13: Check Stock
+
+```java
+if(product.getStock()
+<
+itemRequest.getQuantity()){
+
+throw new RuntimeException(
+"Insufficient Stock");
+
+}
+```
+
+---
+
+# Step 14: Reduce Stock
+
+```java
+product.setStock(
+
+product.getStock()
+
+-
+
+itemRequest.getQuantity()
+
+);
+
+productRepository.save(product);
+```
+
+---
+
+# Step 15: Create Order Item
+
+```java
+OrderItem item=
+new OrderItem();
+
+item.setOrder(order);
+
+item.setProduct(product);
+
+item.setQuantity(
+
+itemRequest.getQuantity());
+
+item.setPrice(
+
+product.getPrice());
+```
+
+---
+
+# Step 16: Calculate Total
+
+```java
+total+=
+
+product.getPrice()
+
+*
+
+itemRequest.getQuantity();
+
+items.add(item);
+```
+
+---
+
+# Step 17: Save Order
+
+```java
+order.setTotalAmount(total);
+
+order.setOrderItems(items);
+
+orderRepository.save(order);
+```
+
+Because of
+
+```java
+CascadeType.ALL
+```
+
+OrderItems also save automatically.
+
+---
+
+# Step 18: Payment
+
+```java
+Payment payment=
+new Payment();
+
+payment.setOrder(order);
+
+payment.setAmount(total);
+
+payment.setStatus("SUCCESS");
+
+payment.setPaymentType(
+
+request.getPaymentType());
+
+payment.setPaymentDate(
+
+LocalDateTime.now());
+
+paymentRepository.save(payment);
+```
+
+---
+
+# Step 19: Return Response
+
+```java
+return new OrderResponse(
+
+order.getId(),
+
+total,
+
+"SUCCESS"
+
+);
+```
+
+---
+
+# What Happens Internally?
+
+```text
+BEGIN TRANSACTION
+
+↓
+
+Save Order
+
+↓
+
+Save Order Items
+
+↓
+
+Update Product Stock
+
+↓
+
+Save Payment
+
+↓
+
+COMMIT
+```
+
+If any exception occurs:
+
+```text
+BEGIN
+
+↓
+
+Save Order
+
+↓
+
+Save Order Items
+
+↓
+
+Update Stock
+
+↓
+
+Payment Exception
+
+↓
+
+ROLLBACK
+```
+
+No partial data remains in the database.
+
+---
+
+# Test Case 1 (Success)
+
+Products
+
+```text
+Laptop
+
+Stock = 10
+```
+
+Order
+
+```json
+{
+  "customerId":1,
+  "paymentType":"CARD",
+  "items":[
+    {
+      "productId":1,
+      "quantity":2
+    }
+  ]
+}
+```
+
+Result
+
+```text
+Order Saved
+
+Payment Saved
+
+Stock
+
+10
+
+↓
+
+8
+```
+
+---
+
+# Test Case 2 (Failure)
+
+Stock
+
+```text
+Laptop
+
+Stock = 2
+```
+
+Request
+
+```json
+{
+"productId":1,
+
+"quantity":5
+}
+```
+
+Exception
+
+```text
+Insufficient Stock
+```
+
+Result
+
+```text
+Order NOT Saved
+
+Payment NOT Saved
+
+Stock NOT Updated
+```
+
+Everything is rolled back automatically.
+
+---
+
+# APIs
+
+| Method | Endpoint                | Description            |
+| ------ | ----------------------- | ---------------------- |
+| POST   | `/orders`               | Place order            |
+| GET    | `/orders/{id}`          | Order details          |
+| GET    | `/orders/customer/{id}` | Customer order history |
+| PUT    | `/orders/{id}/cancel`   | Cancel order           |
+
+---
+
+# What You've Learned
+
+By completing this phase, you'll gain hands-on experience with:
+
+* ✅ `@Transactional`
+* ✅ Multi-entity persistence
+* ✅ Rollback on exception
+* ✅ Business validation
+* ✅ Parent-child relationships
+* ✅ Cascade persistence
+* ✅ Order processing workflow
+* ✅ Inventory management
+
+---
+
+# Challenge
+
+Implement these additional business rules:
+
+1. Prevent ordering inactive products.
+2. Reject orders with an empty item list.
+3. Cancel an order and restore product stock.
+4. Store payment status as `PENDING`, `SUCCESS`, or `FAILED`.
+5. Retrieve complete order history for a customer.
+
+---
+
+# Next Phase
+
+The next phase will focus on **Auditing, Timestamping, and Entity Lifecycle**, where you'll implement:
+
+* Automatic `createdAt` and `updatedAt`
+* `createdBy` and `lastModifiedBy`
+* Entity listeners
+* Auditing with `@EnableJpaAuditing`
+* Optimistic locking using `@Version`
+
+These are production-grade features that make your application maintainable and safe in concurrent environments.

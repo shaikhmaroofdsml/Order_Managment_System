@@ -1,14 +1,11 @@
 package com.ecommerce.order_management_system.dto;
 
-import com.ecommerce.order_management_system.entity.Category;
-import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Data;
-import lombok.NonNull;
 
 @Data
 @Builder
-public class ProductResponse {
+public class ProductResponseDTO {
 
     private Long id;
 

@@ -1,8 +1,8 @@
 package com.ecommerce.order_management_system.service;
 
-import com.ecommerce.order_management_system.dto.ProductRequest;
-import com.ecommerce.order_management_system.dto.ProductResponse;
-import com.ecommerce.order_management_system.entity.Product;
+import com.ecommerce.order_management_system.dto.ProductRequestDTO;
+import com.ecommerce.order_management_system.dto.ProductResponseDTO;
+import com.ecommerce.order_management_system.dto.ProductSearchRequestDTO;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
@@ -10,22 +10,28 @@ import java.util.List;
 public interface ProductService {
 
 
+    //JPASpecification
+    Page<ProductResponseDTO> search(ProductSearchRequestDTO request);
+
+
+
+
 //    Phase 6: Pagination, Sorting & Filtering
 
     // Filtering
-    Page<ProductResponse> getProductsByCategory(
+    Page<ProductResponseDTO> getProductsByCategory(
             String category,
             int page,
             int size);
 
     // Pagination
-    Page<ProductResponse> getProducts(int page, int size);
+    Page<ProductResponseDTO> getProducts(int page, int size);
 
     // Sorting
-    List<ProductResponse> sort(String field, String direction);
+    List<ProductResponseDTO> sort(String field, String direction);
 
     // Pagination + Sorting here
-    Page<ProductResponse> getProductWithSorting(
+    Page<ProductResponseDTO> getProductWithSorting(
             int page,
             int size,
             String field,
@@ -63,20 +69,20 @@ public interface ProductService {
 
 
     // Actual requirement is here only.
-    ProductResponse create(ProductRequest request);
+    ProductResponseDTO create(ProductRequestDTO request);
 
-    List<ProductResponse> getALl();
+    List<ProductResponseDTO> getALl();
 
-    ProductResponse getById(Long id);
+    ProductResponseDTO getById(Long id);
 
-    ProductResponse update(Long id,ProductRequest request);
+    ProductResponseDTO update(Long id, ProductRequestDTO request);
 
     void delete(Long id);
 
     // Other than CRUD
-    public  List<ProductResponse> findByName(String name);
+    public  List<ProductResponseDTO> findByName(String name);
 
-    List<ProductResponse> findByNameContaining(String keyword);
+    List<ProductResponseDTO> findByNameContaining(String keyword);
 
-    List<ProductResponse> findByStockLessThan(Integer stock);
+    List<ProductResponseDTO> findByStockLessThan(Integer stock);
 }

@@ -1,11 +1,10 @@
 package com.ecommerce.order_management_system.dto;
 
-import jakarta.persistence.criteria.CriteriaBuilder;
 import lombok.Data;
 import lombok.NonNull;
 
 @Data
-public class ProductRequest {
+public class ProductRequestDTO {
 
     @NonNull
     private String name;

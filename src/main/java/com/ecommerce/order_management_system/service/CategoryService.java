@@ -1,19 +1,19 @@
 package com.ecommerce.order_management_system.service;
 
-import com.ecommerce.order_management_system.dto.CategoryRequest;
-import com.ecommerce.order_management_system.dto.CategoryResponse;
+import com.ecommerce.order_management_system.dto.CategoryRequestDTO;
+import com.ecommerce.order_management_system.dto.CategoryResponseDTO;
 
 import java.util.List;
 
 public interface CategoryService {
 
-    CategoryResponse  create(CategoryRequest request);
+    CategoryResponseDTO create(CategoryRequestDTO request);
 
-    List<CategoryResponse> getAll();
+    List<CategoryResponseDTO> getAll();
 
-    CategoryResponse getById(Long id);
+    CategoryResponseDTO getById(Long id);
 
-    CategoryResponse update(Long id,CategoryRequest request);
+    CategoryResponseDTO update(Long id, CategoryRequestDTO request);
 
     void delete(Long id);
 }

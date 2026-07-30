@@ -1,7 +1,7 @@
 package com.ecommerce.order_management_system.service.Impl;
 
-import com.ecommerce.order_management_system.dto.CategoryRequest;
-import com.ecommerce.order_management_system.dto.CategoryResponse;
+import com.ecommerce.order_management_system.dto.CategoryRequestDTO;
+import com.ecommerce.order_management_system.dto.CategoryResponseDTO;
 import com.ecommerce.order_management_system.entity.Category;
 import com.ecommerce.order_management_system.repo.CategoryRepository;
 import com.ecommerce.order_management_system.service.CategoryService;
@@ -17,7 +17,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryRepository categoryRepository;
 
     @Override
-    public CategoryResponse create(CategoryRequest request) {
+    public CategoryResponseDTO create(CategoryRequestDTO request) {
         Category category = Category.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -25,7 +25,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         Category saved =  categoryRepository.save(category);
 
-        return CategoryResponse.builder()
+        return CategoryResponseDTO.builder()
                 .id(saved.getId())
                 .name(saved.getName())
                 .description(saved.getDescription())
@@ -33,10 +33,10 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public List<CategoryResponse> getAll() {
+    public List<CategoryResponseDTO> getAll() {
        return categoryRepository.findAll()
                 .stream()
-                .map(c-> CategoryResponse.builder()
+                .map(c-> CategoryResponseDTO.builder()
                         .id(c.getId())
                         .name(c.getName())
                         .description(c.getDescription())
@@ -45,11 +45,11 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryResponse getById(Long id) {
+    public CategoryResponseDTO getById(Long id) {
         Category category = categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not Found ....."));
 
-        return CategoryResponse.builder()
+        return CategoryResponseDTO.builder()
                 .id(category.getId())
                 .name(category.getName())
                 .description(category.getDescription())
@@ -57,14 +57,14 @@ public class CategoryServiceImpl implements CategoryService {
     }
 
     @Override
-    public CategoryResponse update(Long id, CategoryRequest request) {
+    public CategoryResponseDTO update(Long id, CategoryRequestDTO request) {
         Category category =  categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category Not Found..."));
         category.setName(request.getName());
         category.setDescription(request.getDescription());
 
         Category updated = categoryRepository.save(category);
-        return CategoryResponse.builder()
+        return CategoryResponseDTO.builder()
                 .id(updated.getId())
                 .name(updated.getName())
                 .description(updated.getDescription())

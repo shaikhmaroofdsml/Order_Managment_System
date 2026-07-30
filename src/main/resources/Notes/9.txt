@@ -1,0 +1,415 @@
+Excellent. You're now entering a phase that makes your application **production-ready**.
+
+# Phase 9: Auditing, Timestamping & Optimistic Locking
+
+This phase is based on the **Timestamp**, **Auditing**, and related JPA sections from your notes.
+
+---
+
+# Why Auditing?
+
+Without auditing, you don't know:
+
+* Who created a record?
+* When was it created?
+* Who modified it last?
+* When was it updated?
+
+Most enterprise applications automatically maintain this information.
+
+---
+
+# Step 1: Enable JPA Auditing
+
+Create a configuration class.
+
+```java
+@Configuration
+@EnableJpaAuditing
+public class JpaConfig {
+
+}
+```
+
+Now Spring Data JPA can automatically populate audit fields.
+
+---
+
+# Step 2: Add Audit Fields
+
+Create a reusable base class.
+
+```java
+@MappedSuperclass
+@EntityListeners(AuditingEntityListener.class)
+@Getter
+@Setter
+public abstract class BaseEntity {
+
+    @CreatedDate
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
+
+}
+```
+
+Instead of repeating these fields in every entity, inherit from this class.
+
+---
+
+# Step 3: Extend BaseEntity
+
+Example:
+
+```java
+@Entity
+public class Product extends BaseEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String name;
+
+    private Double price;
+
+    private Integer stock;
+
+}
+```
+
+Now every product automatically has:
+
+```text
+id
+
+name
+
+price
+
+stock
+
+createdAt
+
+updatedAt
+```
+
+---
+
+# Step 4: Insert a Product
+
+Request
+
+```json
+{
+  "name":"Laptop",
+  "price":1200,
+  "stock":20
+}
+```
+
+Database
+
+```text
+id = 1
+
+name = Laptop
+
+price = 1200
+
+stock = 20
+
+createdAt = 2026-07-29 10:30
+
+updatedAt = 2026-07-29 10:30
+```
+
+You didn't set these fields manually.
+
+Spring populated them automatically.
+
+---
+
+# Step 5: Update Product
+
+Suppose you update the price.
+
+```text
+Old Price
+
+1200
+
+↓
+
+New Price
+
+1100
+```
+
+After saving:
+
+```text
+createdAt
+
+2026-07-29 10:30
+
+updatedAt
+
+2026-07-29 11:05
+```
+
+Notice:
+
+* `createdAt` remains unchanged.
+* `updatedAt` is updated automatically.
+
+---
+
+# Step 6: Track Who Created the Record
+
+If your application has authentication, you can also store:
+
+```java
+@CreatedBy
+private String createdBy;
+
+@LastModifiedBy
+private String modifiedBy;
+```
+
+These fields require an `AuditorAware` implementation to tell Spring who the current user is.
+
+---
+
+# Step 7: Optimistic Locking
+
+Imagine two administrators edit the same product.
+
+```text
+Admin A
+
+↓
+
+Laptop Price = 1200
+
+--------------------
+
+Admin B
+
+↓
+
+Laptop Price = 1200
+```
+
+Both load the same product.
+
+Admin A saves:
+
+```text
+1200
+
+↓
+
+1100
+```
+
+A few seconds later, Admin B saves:
+
+```text
+1200
+
+↓
+
+1000
+```
+
+Without protection, Admin B accidentally overwrites Admin A's changes.
+
+---
+
+# Step 8: Add Version Field
+
+```java
+@Version
+private Integer version;
+```
+
+Database
+
+```text
+id
+
+name
+
+price
+
+version
+```
+
+Initially:
+
+```text
+version = 0
+```
+
+---
+
+# Step 9: First Update
+
+Before update
+
+```text
+version = 0
+```
+
+After successful save
+
+```text
+version = 1
+```
+
+Each successful update increments the version automatically.
+
+---
+
+# Step 10: Concurrent Update
+
+Admin A loads
+
+```text
+version = 1
+```
+
+Admin B loads
+
+```text
+version = 1
+```
+
+Admin A saves first.
+
+Database
+
+```text
+version = 2
+```
+
+Now Admin B tries to save using
+
+```text
+version = 1
+```
+
+Hibernate detects the mismatch and throws an optimistic locking exception instead of silently overwriting data.
+
+---
+
+# Entity Lifecycle Overview
+
+```text
+Create Entity
+      │
+      ▼
+createdAt populated
+createdBy populated
+version = 0
+      │
+      ▼
+Update Entity
+      │
+      ▼
+updatedAt populated
+modifiedBy populated
+version++
+```
+
+---
+
+# Recommended Base Entity
+
+```java
+@MappedSuperclass
+@EntityListeners(AuditingEntityListener.class)
+@Getter
+@Setter
+public abstract class BaseEntity {
+
+    @CreatedDate
+    private LocalDateTime createdAt;
+
+    @LastModifiedDate
+    private LocalDateTime updatedAt;
+
+    @Version
+    private Integer version;
+}
+```
+
+All entities can inherit from this class.
+
+---
+
+# Apply It To
+
+Extend `BaseEntity` in:
+
+* `Category`
+* `Product`
+* `Customer`
+* `Orders`
+* `Payment`
+
+This gives every major entity consistent auditing information.
+
+---
+
+# Challenge
+
+Update your project so that:
+
+1. Every entity extends `BaseEntity`.
+2. `createdAt` is populated automatically.
+3. `updatedAt` changes after every update.
+4. Add a `version` field for optimistic locking.
+5. Verify:
+
+   * Create a product and inspect `createdAt`.
+   * Update the product and verify `updatedAt` changes.
+   * Confirm `version` increments after each successful update.
+
+---
+
+# What You've Learned
+
+After this phase, you'll have practical experience with:
+
+* ✅ `@EnableJpaAuditing`
+* ✅ `@CreatedDate`
+* ✅ `@LastModifiedDate`
+* ✅ `@CreatedBy`
+* ✅ `@LastModifiedBy`
+* ✅ `@MappedSuperclass`
+* ✅ `@EntityListeners`
+* ✅ `@Version`
+* ✅ Optimistic locking
+
+These topics correspond to the auditing and timestamp concepts presented in your uploaded Spring Data JPA notes.
+
+---
+
+# Next Phase (Final Advanced Module)
+
+Next you'll learn **Performance Optimization & Best Practices**, including:
+
+* Lazy vs. Eager fetching
+* Solving the **N+1 Query Problem**
+* `JOIN FETCH`
+* `@EntityGraph`
+* Batch operations
+* Bulk inserts and updates
+* Transaction and repository best practices
+* Common Spring Data JPA interview questions
+
+This final phase focuses on writing **fast, scalable, production-quality** Spring Data JPA applications.

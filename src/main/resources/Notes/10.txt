@@ -1,0 +1,498 @@
+Excellent. This is the **final advanced phase** of your Spring Data JPA roadmap. These are the concepts that distinguish a developer who can build an application from one who can optimize it for production.
+
+# Phase 10: Performance Optimization & Best Practices
+
+This phase builds on the association mapping concepts from your notes and focuses on writing efficient JPA applications. Your uploaded notes discuss relationship mappings and fetch strategies, but they do not cover topics like the N+1 problem or `@EntityGraph` in detail, so those sections below are additional Spring Data JPA knowledge beyond the notes.
+
+---
+
+# Why Performance Matters
+
+Imagine your application has:
+
+* 100,000 Products
+* 50,000 Customers
+* 500,000 Orders
+
+If every request executes unnecessary SQL queries, your application will become slow even on powerful servers.
+
+---
+
+# 1. Lazy Loading vs Eager Loading
+
+## Lazy Loading
+
+```java
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "category_id")
+private Category category;
+```
+
+Hibernate loads only the `Product`.
+
+When you access:
+
+```java
+product.getCategory().getName();
+```
+
+then it executes another SQL query.
+
+---
+
+## Eager Loading
+
+```java
+@ManyToOne(fetch = FetchType.EAGER)
+private Category category;
+```
+
+Hibernate immediately loads both Product and Category.
+
+---
+
+### Which One Should You Use?
+
+| LAZY                   | EAGER                     |
+| ---------------------- | ------------------------- |
+| Loads only when needed | Loads immediately         |
+| Better performance     | Can load unnecessary data |
+| Recommended by default | Use only when required    |
+
+---
+
+# 2. The N+1 Query Problem
+
+Suppose you have 100 products.
+
+Code
+
+```java
+List<Product> products = repository.findAll();
+
+for(Product product : products){
+    System.out.println(product.getCategory().getName());
+}
+```
+
+Generated SQL
+
+```sql
+SELECT * FROM products;
+```
+
+Then for each product:
+
+```sql
+SELECT * FROM categories WHERE id=?;
+```
+
+If there are 100 products:
+
+```text
+1 Query
+
++
+
+100 Queries
+
+=
+
+101 Queries
+```
+
+This is called the **N+1 Query Problem**.
+
+---
+
+# 3. Solve N+1 with JOIN FETCH
+
+Repository
+
+```java
+@Query("""
+SELECT p
+FROM Product p
+JOIN FETCH p.category
+""")
+List<Product> findAllWithCategory();
+```
+
+Generated SQL
+
+```sql
+SELECT p.*, c.*
+FROM products p
+JOIN categories c
+ON p.category_id = c.id;
+```
+
+Now only **one query** is executed.
+
+---
+
+# 4. Using @EntityGraph
+
+Instead of writing a custom JPQL query:
+
+```java
+@EntityGraph(attributePaths = "category")
+List<Product> findAll();
+```
+
+Spring automatically fetches the category together with the product.
+
+This is often cleaner than `JOIN FETCH`.
+
+---
+
+# 5. Batch Inserts
+
+Instead of:
+
+```java
+for(Product p : products){
+    repository.save(p);
+}
+```
+
+Use:
+
+```java
+repository.saveAll(products);
+```
+
+This reduces database round trips.
+
+---
+
+# 6. Batch Updates
+
+Avoid:
+
+```java
+for(Product product : products){
+    product.setPrice(product.getPrice() * 0.9);
+    repository.save(product);
+}
+```
+
+Prefer a bulk update:
+
+```java
+@Modifying
+@Transactional
+@Query("""
+UPDATE Product
+SET price = price * 0.90
+""")
+int applyDiscount();
+```
+
+One SQL statement updates every row.
+
+---
+
+# 7. Read-Only Transactions
+
+For queries that only read data:
+
+```java
+@Transactional(readOnly = true)
+public List<ProductResponse> getProducts() {
+    return repository.findAll()
+                     .stream()
+                     .map(this::mapToResponse)
+                     .toList();
+}
+```
+
+This allows Spring and the persistence provider to optimize the transaction.
+
+---
+
+# 8. DTO Projection
+
+Avoid returning complete entities if the client only needs a few fields.
+
+Instead of:
+
+```java
+List<Product>
+```
+
+Return:
+
+```java
+public record ProductSummary(
+    String name,
+    Double price
+){}
+```
+
+Repository
+
+```java
+@Query("""
+SELECT new com.ecommerce.dto.ProductSummary(
+    p.name,
+    p.price
+)
+FROM Product p
+""")
+List<ProductSummary> summary();
+```
+
+Less data is transferred from the database.
+
+---
+
+# 9. Pagination Everywhere
+
+Avoid:
+
+```java
+repository.findAll();
+```
+
+Prefer:
+
+```java
+repository.findAll(
+    PageRequest.of(0, 20)
+);
+```
+
+Never return thousands of rows in a single API response.
+
+---
+
+# 10. Avoid Business Logic in Controllers
+
+❌ Bad
+
+```java
+@PostMapping
+public void create() {
+    // validation
+    // save
+    // payment
+    // stock update
+}
+```
+
+✅ Good
+
+```java
+@PostMapping
+public OrderResponse create(
+        @RequestBody OrderRequest request) {
+
+    return orderService.placeOrder(request);
+}
+```
+
+Business logic belongs in the service layer.
+
+---
+
+# 11. Handle Exceptions Centrally
+
+Instead of writing `try/catch` in every controller, use:
+
+```java
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<String> handle(RuntimeException ex) {
+        return ResponseEntity.badRequest()
+                .body(ex.getMessage());
+    }
+}
+```
+
+---
+
+# 12. Validate Input
+
+DTO
+
+```java
+public class ProductRequest {
+
+    @NotBlank
+    private String name;
+
+    @Positive
+    private Double price;
+
+    @Min(0)
+    private Integer stock;
+}
+```
+
+Controller
+
+```java
+@PostMapping
+public ProductResponse create(
+        @Valid @RequestBody ProductRequest request) {
+
+    return service.create(request);
+}
+```
+
+---
+
+# 13. Logging
+
+Instead of:
+
+```java
+System.out.println("Product saved");
+```
+
+Use:
+
+```java
+private static final Logger log =
+        LoggerFactory.getLogger(ProductServiceImpl.class);
+
+log.info("Product {} created", product.getName());
+```
+
+---
+
+# 14. Common Repository Best Practices
+
+* Extend `JpaRepository` instead of `CrudRepository` when you need pagination and sorting.
+* Use derived query methods for simple queries.
+* Use JPQL for entity-oriented custom queries.
+* Use native SQL only when JPQL cannot express the query efficiently.
+* Use `@Transactional` around business operations involving multiple database updates.
+* Return DTOs from controllers instead of entities.
+* Prefer constructor/record projections for reporting queries.
+
+---
+
+# Final Project Structure
+
+```text
+src/main/java
+│
+├── config
+│
+├── controller
+│
+├── dto
+│
+├── entity
+│
+├── exception
+│
+│   └── GlobalExceptionHandler
+│
+├── mapper
+│
+├── repository
+│
+├── service
+│
+├── service/impl
+│
+├── specification
+│
+└── util
+```
+
+---
+
+# Final Challenge
+
+Before considering your Spring Data JPA learning complete, make sure your project supports all of these:
+
+### CRUD
+
+* ✅ Category CRUD
+* ✅ Product CRUD
+* ✅ Customer CRUD
+
+### Relationships
+
+* ✅ One-to-One
+* ✅ One-to-Many
+* ✅ Many-to-One
+
+### Queries
+
+* ✅ Derived query methods
+* ✅ JPQL
+* ✅ Native SQL
+* ✅ DTO projections
+* ✅ Aggregate queries
+
+### Data Modification
+
+* ✅ `@Modifying`
+* ✅ `@Transactional`
+* ✅ Bulk updates
+* ✅ Soft delete
+
+### Search
+
+* ✅ Pagination
+* ✅ Sorting
+* ✅ Dynamic Specifications
+
+### Business Flow
+
+* ✅ Place order
+* ✅ Reduce stock
+* ✅ Save payment
+* ✅ Transaction rollback
+
+### Production Features
+
+* ✅ Auditing
+* ✅ Optimistic locking
+* ✅ Validation
+* ✅ Global exception handling
+* ✅ Logging
+* ✅ Performance optimization
+
+---
+
+# Interview Questions You Should Be Able to Answer
+
+1. What is the difference between `CrudRepository`, `PagingAndSortingRepository`, and `JpaRepository`?
+2. When would you use a derived query instead of `@Query`?
+3. What is the difference between JPQL and native SQL?
+4. Why are `@Modifying` and `@Transactional` required for update/delete queries?
+5. What is the N+1 query problem, and how do you solve it?
+6. What is the difference between `LAZY` and `EAGER` fetching?
+7. What is a `Specification`, and when should you use it?
+8. How does optimistic locking with `@Version` work?
+9. What does `CascadeType.ALL` do?
+10. Why should controllers return DTOs instead of entities?
+
+---
+
+## Congratulations 🎉
+
+By completing these ten phases, you've covered nearly all of the core Spring Data JPA topics typically expected of a backend developer:
+
+* Entity mapping
+* Repository APIs
+* Relationships
+* Derived queries
+* JPQL & native SQL
+* Pagination & sorting
+* Specifications
+* Transactions
+* Auditing
+* Optimistic locking
+* Performance optimization
+* Production best practices
+
+From here, a natural next step is to integrate **Spring Security + JWT**, **Redis caching**, **Docker**, **Spring Boot testing (JUnit & Testcontainers)**, and **microservices** to build a complete enterprise backend stack.

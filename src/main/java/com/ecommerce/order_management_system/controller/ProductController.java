@@ -1,14 +1,14 @@
 package com.ecommerce.order_management_system.controller;
 
-import com.ecommerce.order_management_system.dto.ProductRequest;
-import com.ecommerce.order_management_system.dto.ProductResponse;
+import com.ecommerce.order_management_system.dto.ProductRequestDTO;
+import com.ecommerce.order_management_system.dto.ProductResponseDTO;
+import com.ecommerce.order_management_system.dto.ProductSearchRequestDTO;
 import com.ecommerce.order_management_system.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -18,10 +18,24 @@ public class ProductController {
 
     private final ProductService productService;
 
+
+    // specification
+    @PostMapping("/specificationSearch")
+    public Page<ProductResponseDTO> search(@RequestBody ProductSearchRequestDTO request){
+
+        return productService.search(request);
+
+    }
+
+
+
+
+
 //    Phase 6: Pagination, Sorting & Filtering
 
+    // Pagination
     @GetMapping("/page")
-    public Page<ProductResponse> getProducts(
+    public Page<ProductResponseDTO> getProducts(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "5") int size)
     {
@@ -31,7 +45,7 @@ public class ProductController {
 
         // Sorting
     @GetMapping("/sort")
-    public List<ProductResponse> sort(@RequestParam String field, @RequestParam String direction)
+    public List<ProductResponseDTO> sort(@RequestParam String field, @RequestParam String direction)
     {
         return productService.sort(field,direction);
 
@@ -40,7 +54,7 @@ public class ProductController {
     // Pagination + Sorting
 
     @GetMapping("/page-sort")
-    public Page<ProductResponse> getProducts(
+    public Page<ProductResponseDTO> getProducts(
 
             @RequestParam(defaultValue = "0")
             int page,
@@ -60,7 +74,7 @@ public class ProductController {
 //    Filtering
 
     @GetMapping("/category_filter") // GET /api/products/category_filter?name=Electronics&page=0&size=5
-    public Page<ProductResponse> category(
+    public Page<ProductResponseDTO> category(
 
             @RequestParam String name,
 
@@ -73,13 +87,6 @@ public class ProductController {
         return productService
                 .getProductsByCategory(name, page, size);
     }
-
-
-
-
-
-
-
 
 
 
@@ -147,25 +154,25 @@ public class ProductController {
     // create Product
 
     @PostMapping
-    public ProductResponse create(@Valid @RequestBody ProductRequest request)
+    public ProductResponseDTO create(@Valid @RequestBody ProductRequestDTO request)
     {
         return productService.create(request);
     }
 
     @GetMapping
-    public List<ProductResponse> getAll()
+    public List<ProductResponseDTO> getAll()
     {
         return  productService.getALl();
     }
 
     @GetMapping("/{id}")
-    public ProductResponse getById(@PathVariable Long id)
+    public ProductResponseDTO getById(@PathVariable Long id)
     {
         return productService.getById(id);
     }
 
     @PutMapping("/{id}")
-    public ProductResponse update(@PathVariable Long id,@Valid @RequestBody ProductRequest request)
+    public ProductResponseDTO update(@PathVariable Long id, @Valid @RequestBody ProductRequestDTO request)
     {
         return productService.update(id,request);
     }
@@ -182,12 +189,12 @@ public class ProductController {
     /// ////////////////////    findBy*****     //////////////////////////
 
     @GetMapping("/search")
-    public List<ProductResponse> findByName(@RequestParam String name) {
+    public List<ProductResponseDTO> findByName(@RequestParam String name) {
         return productService.findByName(name);
     }
 
 //    @GetMapping("/search") //
-//    public List<ProductResponse> findByNameContaining(@RequestParam String keyword)
+//    public List<ProductResponseDTO> findByNameContaining(@RequestParam String keyword)
 //    {
 //
 //        return productService.findByNameContaining(keyword);
@@ -195,7 +202,7 @@ public class ProductController {
 
 
 //    @GetMapping("search") //
-//    public List<ProductResponse>  findByStockLessThan(@RequestParam Integer stock)
+//    public List<ProductResponseDTO>  findByStockLessThan(@RequestParam Integer stock)
 //    {
 //        return productService.findByStockLessThan(stock);
 //    }

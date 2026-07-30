@@ -1,0 +1,489 @@
+
+Excellent. Now we'll learn the feature that separates beginners from intermediate Spring Data JPA developers.
+
+# Phase 4: Custom Queries (`@Query`)
+
+Until now, Spring generated SQL from method names.
+
+Sometimes, that's not enough.
+
+Example:
+
+* Join multiple tables
+* Aggregate data
+* Reports
+* Dashboard queries
+* Complex filtering
+
+Then we use **`@Query`**.
+
+This matches the "Custom Queries" section in your notes, including JPQL and native SQL.
+
+---
+
+# Step 1: JPQL vs Native SQL
+
+## JPQL (Recommended)
+
+Uses **Entity name** and **Entity fields**.
+
+```java
+@Query("FROM Product")
+List<Product> getAllProducts();
+```
+
+Notice:
+
+* Product = Entity class
+* price = Java field
+* category = Java object
+
+Not database names.
+
+---
+
+## Native SQL
+
+Uses
+
+* table names
+* column names
+
+```java
+@Query(value = "SELECT * FROM products", nativeQuery = true)
+List<Product> getProducts();
+```
+
+---
+
+# Which One Should We Use?
+
+| JPQL                 | Native SQL             |
+| -------------------- | ---------------------- |
+| Database independent | Database specific      |
+| Uses Entity          | Uses Table             |
+| Easier maintenance   | Better for complex SQL |
+| Recommended          | Only when needed       |
+
+---
+
+# Step 2: Create Repository Methods
+
+## Query 1
+
+Get all products.
+
+JPQL
+
+```java
+@Query("FROM Product")
+List<Product> getAllProducts();
+```
+
+Equivalent SQL
+
+```sql
+SELECT * FROM products;
+```
+
+---
+
+# Query 2
+
+Expensive products
+
+```java
+@Query("""
+FROM Product
+WHERE price > :price
+""")
+List<Product> findExpensiveProducts(
+        @Param("price") Double price);
+```
+
+Notice
+
+```java
+:price
+```
+
+comes from
+
+```java
+@Param("price")
+```
+
+---
+
+API
+
+```text
+GET /products/expensive?price=1000
+```
+
+---
+
+# Query 3
+
+Products in category
+
+```java
+@Query("""
+FROM Product
+WHERE category.name=:category
+""")
+List<Product> productsByCategory(
+        @Param("category") String category);
+```
+
+No JOIN written.
+
+Hibernate creates it.
+
+---
+
+# Query 4
+
+Price Between
+
+```java
+@Query("""
+FROM Product
+WHERE price BETWEEN :min AND :max
+""")
+List<Product> productsBetween(
+        @Param("min") Double min,
+        @Param("max") Double max);
+```
+
+---
+
+# Query 5
+
+Search
+
+```java
+@Query("""
+FROM Product
+WHERE lower(name)
+LIKE lower(concat('%',:keyword,'%'))
+""")
+List<Product> search(
+        @Param("keyword")
+        String keyword);
+```
+
+Searches
+
+```text
+Book
+```
+
+Returns
+
+```text
+MacBook
+
+Notebook
+
+Book Stand
+```
+
+---
+
+# Query 6
+
+Projection
+
+Instead of returning the whole Product.
+
+Return
+
+```text
+Product Name
+
+Price
+```
+
+Repository
+
+```java
+@Query("""
+SELECT p.name,p.price
+FROM Product p
+""")
+List<Object[]> getNamesAndPrices();
+```
+
+Returns
+
+```text
+MacBook      1200
+
+iPhone       900
+
+Keyboard      50
+```
+
+---
+
+# Better Way (DTO Projection)
+
+Create
+
+```java
+public record ProductSummary(
+
+        String name,
+
+        Double price
+
+){}
+```
+
+Repository
+
+```java
+@Query("""
+SELECT new
+com.ecommerce.dto.ProductSummary(
+p.name,
+p.price)
+FROM Product p
+""")
+List<ProductSummary> summary();
+```
+
+This is cleaner than `Object[]`.
+
+---
+
+# Query 7
+
+Find Total Products
+
+```java
+@Query("""
+SELECT COUNT(p)
+FROM Product p
+""")
+Long totalProducts();
+```
+
+---
+
+# Query 8
+
+Average Price
+
+```java
+@Query("""
+SELECT AVG(price)
+FROM Product
+""")
+Double averagePrice();
+```
+
+---
+
+# Query 9
+
+Maximum Price
+
+```java
+@Query("""
+SELECT MAX(price)
+FROM Product
+""")
+Double maxPrice();
+```
+
+---
+
+# Query 10
+
+Minimum Price
+
+```java
+@Query("""
+SELECT MIN(price)
+FROM Product
+""")
+Double minPrice();
+```
+
+---
+
+# Query 11
+
+Sum
+
+```java
+@Query("""
+SELECT SUM(price)
+FROM Product
+""")
+Double totalInventoryValue();
+```
+
+---
+
+# Native SQL Examples
+
+---
+
+## Native Query
+
+```java
+@Query(value="""
+SELECT *
+FROM products
+WHERE stock<10
+""",
+nativeQuery=true)
+List<Product> lowStock();
+```
+
+---
+
+## Native Join
+
+```java
+@Query(value="""
+SELECT p.*
+FROM products p
+JOIN categories c
+ON p.category_id=c.id
+WHERE c.name=:name
+""",
+nativeQuery=true)
+List<Product> byCategory(
+        @Param("name")
+        String name);
+```
+
+---
+
+# Real Company Example
+
+Dashboard
+
+Need
+
+```text
+Total Products
+
+Average Price
+
+Maximum Price
+
+Minimum Price
+
+Low Stock
+
+Total Inventory Value
+```
+
+Instead of loading all products
+
+Use
+
+```java
+COUNT()
+
+AVG()
+
+MIN()
+
+MAX()
+
+SUM()
+```
+
+Database performs calculations.
+
+Much faster.
+
+---
+
+# Service Layer Example
+
+```java
+public Double averagePrice() {
+
+    return repository.averagePrice();
+
+}
+```
+
+Controller
+
+```java
+@GetMapping("/average-price")
+public Double averagePrice(){
+
+    return service.averagePrice();
+
+}
+```
+
+---
+
+# What You Learned
+
+By completing this phase, you've practiced:
+
+* ✅ `@Query`
+* ✅ JPQL
+* ✅ Native SQL
+* ✅ `@Param`
+* ✅ Named parameters
+* ✅ Aggregate functions (`COUNT`, `AVG`, `SUM`, `MIN`, `MAX`)
+* ✅ DTO projections
+* ✅ Custom search queries
+* ✅ Join queries
+
+These are the same custom query concepts your notes introduce before moving into modifying queries.
+
+---
+
+# Assignment
+
+Implement these repository methods:
+
+```java
+List<Product> lowStock();
+
+List<Product> expensiveProducts(Double price);
+
+List<Product> search(String keyword);
+
+Double averagePrice();
+
+Double maxPrice();
+
+Double minPrice();
+
+Double totalInventoryValue();
+
+Long totalProducts();
+
+List<ProductSummary> summary();
+```
+
+Test every method using Postman.
+
+---
+
+# Next Phase (Most Important)
+
+In the next phase, you'll learn **non-select custom queries**, including:
+
+* `@Modifying`
+* `@Transactional`
+* Custom `UPDATE`
+* Custom `DELETE`
+* Native `INSERT`
+* Soft Delete implementation
+
+This is where you'll understand how Spring Data JPA executes update and delete operations beyond the standard repository methods.

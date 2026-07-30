@@ -1,7 +1,7 @@
 package com.ecommerce.order_management_system.controller;
 
-import com.ecommerce.order_management_system.dto.CategoryRequest;
-import com.ecommerce.order_management_system.dto.CategoryResponse;
+import com.ecommerce.order_management_system.dto.CategoryRequestDTO;
+import com.ecommerce.order_management_system.dto.CategoryResponseDTO;
 import com.ecommerce.order_management_system.service.CategoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,26 +20,26 @@ public class CategoryController {
 
 
     @PostMapping
-    public ResponseEntity<CategoryResponse> createCategory(
-            @Valid @RequestBody CategoryRequest request)
+    public ResponseEntity<CategoryResponseDTO> createCategory(
+            @Valid @RequestBody CategoryRequestDTO request)
     {
         return  new ResponseEntity<>(categoryService.create(request), HttpStatus.CREATED);
     }
 
     @GetMapping
-    public List<CategoryResponse> getALl()
+    public List<CategoryResponseDTO> getALl()
     {
         return  categoryService.getAll();
     }
 
     @GetMapping("/{id}")
-    public CategoryResponse getById(@PathVariable Long id)
+    public CategoryResponseDTO getById(@PathVariable Long id)
     {
         return categoryService.getById(id);
     }
 
     @PutMapping("/{id}")
-    public CategoryResponse updateCategory(@PathVariable Long id, @RequestBody CategoryRequest request)
+    public CategoryResponseDTO updateCategory(@PathVariable Long id, @RequestBody CategoryRequestDTO request)
     {
         return categoryService.update(id,request);
     }

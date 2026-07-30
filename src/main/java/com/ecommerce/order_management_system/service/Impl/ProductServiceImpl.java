@@ -1,17 +1,20 @@
 package com.ecommerce.order_management_system.service.Impl;
 
-import com.ecommerce.order_management_system.dto.ProductRequest;
-import com.ecommerce.order_management_system.dto.ProductResponse;
+import com.ecommerce.order_management_system.dto.ProductRequestDTO;
+import com.ecommerce.order_management_system.dto.ProductResponseDTO;
+import com.ecommerce.order_management_system.dto.ProductSearchRequestDTO;
 import com.ecommerce.order_management_system.entity.Category;
 import com.ecommerce.order_management_system.entity.Product;
 import com.ecommerce.order_management_system.repo.CategoryRepository;
 import com.ecommerce.order_management_system.repo.ProductRepository;
 import com.ecommerce.order_management_system.service.ProductService;
+import com.ecommerce.order_management_system.specification.ProductSpecification;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,12 +26,92 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
 
+    // Specification
+
+    @Override
+    public Page<ProductResponseDTO> search(ProductSearchRequestDTO request) {
+        Specification<Product> specification = (root, query, cb) -> cb.conjunction();
+
+        if(request.getName()!=null  && !request.getName().isBlank())
+        {
+            specification = specification.and(ProductSpecification.hasName(request.getName()));
+        }
+        if(request.getCategory() !=null && !request.getCategory().isBlank())
+        {
+            specification = specification.and(ProductSpecification.hasCategory(request.getCategory()));
+        }
+
+        if (request.getMinPrice() != null) {
+            specification = specification.and(ProductSpecification.minPrice(request.getMinPrice()));
+        }
+
+        if(request.getMaxPrice()!=null){
+
+            specification= specification.and(ProductSpecification.maxPrice(request.getMaxPrice()));
+        }
+
+        if(request.getStock()!=null){
+
+            specification= specification.and(ProductSpecification.stockGreaterThan(request.getStock()));
+
+        }
+
+        if(request.getActive()!=null){
+
+            specification= specification.and(ProductSpecification.active(request.getActive()));
+
+        }
+
+//        Sort sort = request.getDirection().equalsIgnoreCase("desc")
+//                        ?
+//                        Sort.by(request.getField())
+//                                .descending()
+//                        : Sort.by(request.getField()).ascending();
+//
+//        int page = request.getPage() != null ? request.getPage():0;
+//        int size = request.getSize() !=null && request.getSize() >0
+//                ? request.getSize() : 5;
+//
+//        Pageable pageable =
+//                PageRequest.of(
+//                        page,size, sort
+//                );
+
+        int page = request.getPage() != null ? request.getPage() : 0;
+        int size = (request.getSize() != null && request.getSize() > 0)
+                ? request.getSize() : 10;
+
+        String field = request.getField() != null
+                ? request.getField()
+                : "id";
+
+        String direction = request.getDirection() != null
+                ? request.getDirection()
+                : "asc";
+
+        Sort sort = direction.equalsIgnoreCase("desc")
+                ? Sort.by(field).descending()
+                : Sort.by(field).ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        return productRepository.findAll(specification,pageable)
+                .map(this::mapToResponse);
+
+    }
+
+
+
+
+
+
+
 //    Phase 6: Pagination, Sorting & Filtering
 
 
     // Pagination
     @Override
-    public Page<ProductResponse> getProducts(int page, int size) {
+    public Page<ProductResponseDTO> getProducts(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Product> products = productRepository.findAll(pageable);
         return products.map(this::mapToResponse);
@@ -36,7 +119,7 @@ public class ProductServiceImpl implements ProductService {
 
     // Sorting
     @Override
-    public List<ProductResponse> sort(String field, String direction) {
+    public List<ProductResponseDTO> sort(String field, String direction) {
         Sort sort = direction.equalsIgnoreCase("desc")
                 ? Sort.by(field).descending()
                 : Sort.by(field).ascending();
@@ -48,7 +131,7 @@ public class ProductServiceImpl implements ProductService {
 
     // Pagination + Sorting
     @Override
-    public Page<ProductResponse> getProductWithSorting(int page, int size, String field, String direction) {
+    public Page<ProductResponseDTO> getProductWithSorting(int page, int size, String field, String direction) {
         Sort sorting = direction.equalsIgnoreCase("desc")
                 ? Sort.by(field).descending()
                 : Sort.by(field).ascending();
@@ -62,8 +145,10 @@ public class ProductServiceImpl implements ProductService {
 
     // Filtering
 
+
+
     @Override
-    public Page<ProductResponse> getProductsByCategory(
+    public Page<ProductResponseDTO> getProductsByCategory(
             String category,
             int page,
             int size) {
@@ -126,7 +211,7 @@ public class ProductServiceImpl implements ProductService {
 
     /// /////////  CRUD Operations started......   ///////////
     @Override
-    public ProductResponse create(ProductRequest request) {
+    public ProductResponseDTO create(ProductRequestDTO request) {
 
         Category category = categoryRepository.findById(request.getCategory_Id())
                 .orElseThrow(() -> new RuntimeException("Category Not Found"));
@@ -145,7 +230,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public List<ProductResponse> getALl() {
+    public List<ProductResponseDTO> getALl() {
 
         return productRepository.findAll()
                 .stream()
@@ -154,7 +239,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponse getById(Long id) {
+    public ProductResponseDTO getById(Long id) {
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product Not Found"));
@@ -163,7 +248,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public ProductResponse update(Long id, ProductRequest request) {
+    public ProductResponseDTO update(Long id, ProductRequestDTO request) {
 
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product Not Found"));
@@ -194,7 +279,7 @@ public class ProductServiceImpl implements ProductService {
 
     // findByName
     @Override
-    public List<ProductResponse> findByName(String name) {
+    public List<ProductResponseDTO> findByName(String name) {
 
         return productRepository.findByName(name)
                 .stream()
@@ -203,7 +288,7 @@ public class ProductServiceImpl implements ProductService {
     }
     // findByNameContaining()
     @Override
-    public List<ProductResponse> findByNameContaining(String keyword) {
+    public List<ProductResponseDTO> findByNameContaining(String keyword) {
 
         return productRepository.findByNameContaining(keyword)
                 .stream()
@@ -212,7 +297,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    public List<ProductResponse> findByStockLessThan(Integer stock) {
+    public List<ProductResponseDTO> findByStockLessThan(Integer stock) {
         return productRepository.findByStockLessThan(stock)
                 .stream()
                 .map(this::mapToResponse)
@@ -223,9 +308,9 @@ public class ProductServiceImpl implements ProductService {
 
     /// /////////////////////// Helper method /////////////////////////
     ///
-    private ProductResponse mapToResponse(Product product) {
+    private ProductResponseDTO mapToResponse(Product product) {
 
-        return ProductResponse.builder()
+        return ProductResponseDTO.builder()
                 .id(product.getId())
                 .name(product.getName())
                 .price(product.getPrice())

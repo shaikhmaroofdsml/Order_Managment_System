@@ -1,0 +1,602 @@
+
+Perfect. Now we'll implement one of the **most used features in enterprise applications**.
+
+# Phase 6: Pagination, Sorting & Filtering
+
+Every large application (Amazon, Flipkart, Gmail, LinkedIn) uses pagination because loading thousands of records at once is inefficient. Your notes introduce these features through `JpaRepository`, `PageRequest`, `Page`, and `Sort`.
+
+---
+
+# Current Problem
+
+Suppose your database has
+
+```text
+100000 Products
+```
+
+If the client calls
+
+```http
+GET /products
+```
+
+Spring loads all 100000 records.
+
+Problems:
+
+* Slow response
+* High memory usage
+* Poor user experience
+
+Instead, load only a page of data.
+
+---
+
+# Pagination
+
+Example
+
+```text
+Page 1
+
+Laptop
+MacBook
+Keyboard
+Mouse
+Monitor
+
+----------
+
+Page 2
+
+iPhone
+Samsung
+OnePlus
+Pixel
+Realme
+```
+
+---
+
+# Step 1: Repository
+
+Nothing to write.
+
+Why?
+
+Because
+
+```java
+JpaRepository
+```
+
+already provides
+
+```java
+Page<T> findAll(Pageable pageable);
+```
+
+---
+
+# Step 2: Service
+
+```java
+public Page<ProductResponse> getProducts(
+        int page,
+        int size){
+
+    Pageable pageable = PageRequest.of(page,size);
+
+    Page<Product> products =
+            repository.findAll(pageable);
+
+    return products.map(this::mapToResponse);
+
+}
+```
+
+---
+
+# Understanding
+
+```java
+PageRequest.of(0,5)
+```
+
+means
+
+```text
+Page Number = 0
+
+Page Size = 5
+```
+
+Generated SQL
+
+```sql
+LIMIT 5 OFFSET 0
+```
+
+---
+
+Next
+
+```java
+PageRequest.of(1,5)
+```
+
+SQL
+
+```sql
+LIMIT 5 OFFSET 5
+```
+
+---
+
+# Controller
+
+```java
+@GetMapping
+public Page<ProductResponse> getProducts(
+
+@RequestParam(defaultValue="0")
+int page,
+
+@RequestParam(defaultValue="10")
+int size){
+
+    return service.getProducts(page,size);
+
+}
+```
+
+---
+
+# API
+
+```http
+GET /products?page=0&size=5
+```
+
+Returns
+
+```json
+{
+  "content":[
+
+  ],
+
+  "totalElements":120,
+
+  "totalPages":24,
+
+  "size":5,
+
+  "number":0,
+
+  "first":true,
+
+  "last":false
+}
+```
+
+---
+
+# Step 3: Sorting
+
+Repository already supports
+
+```java
+findAll(Sort sort)
+```
+
+No coding.
+
+---
+
+Service
+
+```java
+public List<ProductResponse> sortByPrice(){
+
+    return repository.findAll(
+            Sort.by("price"))
+            .stream()
+            .map(this::mapToResponse)
+            .toList();
+
+}
+```
+
+Ascending
+
+```java
+Sort.by("price")
+```
+
+---
+
+Descending
+
+```java
+Sort.by("price").descending()
+```
+
+---
+
+# Sort By Name
+
+```java
+Sort.by("name")
+```
+
+---
+
+Multiple Columns
+
+```java
+Sort.by("category")
+    .ascending()
+    .and(
+      Sort.by("price")
+          .descending());
+```
+
+Meaning
+
+```text
+Category
+
+↓
+
+Price Desc
+```
+
+---
+
+# Controller
+
+```java
+@GetMapping("/sort")
+
+public List<ProductResponse> sort(
+
+@RequestParam String field,
+
+@RequestParam String direction){
+
+    return service.sort(field,direction);
+
+}
+```
+
+---
+
+Service
+
+```java
+public List<ProductResponse> sort(
+String field,
+String direction){
+
+Sort sort =
+direction.equalsIgnoreCase("desc")
+?
+Sort.by(field).descending()
+:
+Sort.by(field).ascending();
+
+return repository.findAll(sort)
+.stream()
+.map(this::mapToResponse)
+.toList();
+
+}
+```
+
+---
+
+# API
+
+Ascending
+
+```http
+GET /products/sort?field=price&direction=asc
+```
+
+Descending
+
+```http
+GET /products/sort?field=price&direction=desc
+```
+
+---
+
+# Pagination + Sorting
+
+Best practice
+
+```java
+public Page<ProductResponse> getProducts(
+
+int page,
+
+int size,
+
+String field,
+
+String direction){
+
+Sort sort=
+direction.equals("desc")
+
+?
+
+Sort.by(field).descending()
+
+:
+
+Sort.by(field).ascending();
+
+Pageable pageable=
+PageRequest.of(page,size,sort);
+
+return repository
+.findAll(pageable)
+.map(this::mapToResponse);
+
+}
+```
+
+---
+
+API
+
+```http
+GET /products?page=0&size=5&field=price&direction=desc
+```
+
+---
+
+Generated SQL
+
+```sql
+SELECT *
+FROM products
+
+ORDER BY price DESC
+
+LIMIT 5 OFFSET 0;
+```
+
+---
+
+# Step 4: Category Filter
+
+Repository
+
+```java
+Page<Product>
+findByCategoryName(
+
+String category,
+
+Pageable pageable);
+```
+
+No SQL.
+
+Spring generates it.
+
+---
+
+Service
+
+```java
+Pageable pageable=
+PageRequest.of(page,size);
+
+return repository
+.findByCategoryName(
+category,
+pageable)
+.map(this::mapToResponse);
+```
+
+---
+
+API
+
+```http
+GET /products/category?
+
+name=Electronics
+
+&page=0
+
+&size=5
+```
+
+---
+
+# Step 5: Price Filter
+
+Repository
+
+```java
+Page<Product>
+
+findByPriceBetween(
+
+Double min,
+
+Double max,
+
+Pageable pageable);
+```
+
+API
+
+```http
+GET
+
+/products/filter
+
+?min=500
+
+&max=1500
+
+&page=0
+
+&size=10
+```
+
+---
+
+# Step 6: Low Stock
+
+Repository
+
+```java
+Page<Product>
+
+findByStockLessThan(
+
+Integer stock,
+
+Pageable pageable);
+```
+
+Inventory dashboard.
+
+---
+
+# Step 7: Search
+
+Repository
+
+```java
+Page<Product>
+
+findByNameContaining(
+
+String keyword,
+
+Pageable pageable);
+```
+
+API
+
+```http
+GET
+
+/products/search
+
+?keyword=Book
+
+&page=0
+
+&size=10
+```
+
+---
+
+# Production API
+
+One endpoint
+
+```http
+GET
+
+/products
+
+?page=0
+
+&size=20
+
+&sort=price
+
+&direction=desc
+
+&category=Electronics
+
+&keyword=laptop
+```
+
+This is how enterprise applications are typically designed.
+
+---
+
+# What Spring Returns
+
+```text
+Page
+```
+
+contains
+
+```java
+page.getContent()
+
+page.getTotalPages()
+
+page.getTotalElements()
+
+page.isFirst()
+
+page.isLast()
+
+page.getNumber()
+
+page.getSize()
+```
+
+Useful for frontend pagination.
+
+---
+
+# Build These APIs
+
+| Method | Endpoint                                             |
+| ------ | ---------------------------------------------------- |
+| GET    | `/products?page=0&size=10`                           |
+| GET    | `/products/sort?field=price&direction=desc`          |
+| GET    | `/products?page=0&size=5&field=name&direction=asc`   |
+| GET    | `/products/category?name=Electronics&page=0&size=10` |
+| GET    | `/products/filter?min=100&max=1000&page=0&size=10`   |
+| GET    | `/products/search?keyword=Book&page=0&size=10`       |
+| GET    | `/products/low-stock?stock=10&page=0&size=10`        |
+
+---
+
+# What You've Learned
+
+By completing this phase, you'll have practical experience with:
+
+* ✅ `Page`
+* ✅ `Pageable`
+* ✅ `PageRequest`
+* ✅ `Sort`
+* ✅ Pagination
+* ✅ Sorting
+* ✅ Pagination + Sorting
+* ✅ Filtering with Pagination
+* ✅ Search with Pagination
+* ✅ Dynamic sorting
+* ✅ Repository methods that accept `Pageable`
+
+These topics correspond directly to the `JpaRepository` pagination and sorting examples in your notes.
+
+---
+
+# Next Phase (Enterprise Level)
+
+Next we'll build **Dynamic Search using `JpaSpecificationExecutor` (Specifications)**, where users can combine filters like:
+
+* Category = Electronics
+* Price between 100 and 1000
+* Stock > 10
+* Name contains "Laptop"
+
+all in a **single API** without creating dozens of repository methods. This is one of the most valuable Spring Data JPA skills for real-world projects.

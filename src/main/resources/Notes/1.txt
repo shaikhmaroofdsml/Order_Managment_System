@@ -1,0 +1,486 @@
+
+Perfect. Now we'll build the **Category Module** completely. Don't copy-paste blindly—type every line yourself.
+
+---
+
+# Phase 1: Category Module
+
+## Goal
+
+We'll implement these APIs:
+
+| Method | Endpoint               | Description        |
+| ------ | ---------------------- | ------------------ |
+| POST   | `/api/categories`      | Create category    |
+| GET    | `/api/categories`      | Get all categories |
+| GET    | `/api/categories/{id}` | Get category by ID |
+| PUT    | `/api/categories/{id}` | Update category    |
+| DELETE | `/api/categories/{id}` | Delete category    |
+
+You'll practice the repository CRUD methods (`save`, `findAll`, `findById`, `deleteById`) introduced in your notes.
+
+---
+
+# Step 1: Create Entity
+
+```java
+package com.ecommerce.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+
+@Entity
+@Table(name = "categories")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class Category {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String name;
+
+    @Column(length = 500)
+    private String description;
+}
+```
+
+---
+
+# Step 2: Create Repository
+
+```java
+package com.ecommerce.repository;
+
+import com.ecommerce.entity.Category;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface CategoryRepository extends JpaRepository<Category, Long> {
+
+}
+```
+
+Run the project once.
+
+Hibernate should create:
+
+```sql
+categories
+------------
+id
+name
+description
+```
+
+---
+
+# Step 3: Create DTO
+
+Never expose Entity directly to clients.
+
+Create
+
+```text
+dto
+   CategoryRequest.java
+   CategoryResponse.java
+```
+
+### CategoryRequest
+
+```java
+package com.ecommerce.dto;
+
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
+public class CategoryRequest {
+
+    @NotBlank(message = "Category name is required")
+    private String name;
+
+    private String description;
+}
+```
+
+---
+
+### CategoryResponse
+
+```java
+package com.ecommerce.dto;
+
+import lombok.Builder;
+import lombok.Data;
+
+@Data
+@Builder
+public class CategoryResponse {
+
+    private Long id;
+    private String name;
+    private String description;
+}
+```
+
+---
+
+# Why DTO?
+
+Suppose later the entity has:
+
+```java
+private LocalDateTime createdAt;
+private LocalDateTime updatedAt;
+private boolean deleted;
+```
+
+Should the client see these?
+
+**No.**
+
+DTO lets you decide exactly what goes in the request and response.
+
+---
+
+# Step 4: Create Service Interface
+
+```java
+package com.ecommerce.service;
+
+import com.ecommerce.dto.CategoryRequest;
+import com.ecommerce.dto.CategoryResponse;
+
+import java.util.List;
+
+public interface CategoryService {
+
+    CategoryResponse create(CategoryRequest request);
+
+    List<CategoryResponse> getAll();
+
+    CategoryResponse getById(Long id);
+
+    CategoryResponse update(Long id, CategoryRequest request);
+
+    void delete(Long id);
+}
+```
+
+---
+
+# Step 5: Service Implementation
+
+Create
+
+```text
+service
+   impl
+      CategoryServiceImpl.java
+```
+
+Inject repository
+
+```java
+@Service
+@RequiredArgsConstructor
+public class CategoryServiceImpl implements CategoryService {
+
+    private final CategoryRepository repository;
+
+}
+```
+
+Don't implement methods yet.
+
+Compile.
+
+No errors?
+
+Good.
+
+---
+
+# Step 6: Implement Create Method
+
+```java
+@Override
+public CategoryResponse create(CategoryRequest request) {
+
+    Category category = Category.builder()
+            .name(request.getName())
+            .description(request.getDescription())
+            .build();
+
+    Category saved = repository.save(category);
+
+    return CategoryResponse.builder()
+            .id(saved.getId())
+            .name(saved.getName())
+            .description(saved.getDescription())
+            .build();
+}
+```
+
+Here, `save()` inserts a new row because the entity has no ID yet.
+
+---
+
+# Step 7: Implement Get All
+
+```java
+@Override
+public List<CategoryResponse> getAll() {
+
+    return repository.findAll()
+            .stream()
+            .map(c -> CategoryResponse.builder()
+                    .id(c.getId())
+                    .name(c.getName())
+                    .description(c.getDescription())
+                    .build())
+            .toList();
+}
+```
+
+---
+
+# Step 8: Implement Get By Id
+
+```java
+@Override
+public CategoryResponse getById(Long id) {
+
+    Category category = repository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Category not found"));
+
+    return CategoryResponse.builder()
+            .id(category.getId())
+            .name(category.getName())
+            .description(category.getDescription())
+            .build();
+}
+```
+
+Notice how `findById()` returns an `Optional`, so we handle the "not found" case instead of risking a `NullPointerException`.
+
+---
+
+# Step 9: Implement Update
+
+```java
+@Override
+public CategoryResponse update(Long id, CategoryRequest request) {
+
+    Category category = repository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Category not found"));
+
+    category.setName(request.getName());
+    category.setDescription(request.getDescription());
+
+    Category updated = repository.save(category);
+
+    return CategoryResponse.builder()
+            .id(updated.getId())
+            .name(updated.getName())
+            .description(updated.getDescription())
+            .build();
+}
+```
+
+This uses `save()` again, but because the entity already has an ID, JPA performs an update (upsert behavior).
+
+---
+
+# Step 10: Implement Delete
+
+```java
+@Override
+public void delete(Long id) {
+
+    if (!repository.existsById(id)) {
+        throw new RuntimeException("Category not found");
+    }
+
+    repository.deleteById(id);
+}
+```
+
+---
+
+# Step 11: Create Controller
+
+```java
+@RestController
+@RequestMapping("/api/categories")
+@RequiredArgsConstructor
+public class CategoryController {
+
+    private final CategoryService service;
+
+}
+```
+
+Add endpoints one by one.
+
+### Create
+
+```java
+@PostMapping
+public ResponseEntity<CategoryResponse> create(
+        @Valid @RequestBody CategoryRequest request) {
+
+    return new ResponseEntity<>(
+            service.create(request),
+            HttpStatus.CREATED);
+}
+```
+
+---
+
+### Get All
+
+```java
+@GetMapping
+public List<CategoryResponse> getAll() {
+    return service.getAll();
+}
+```
+
+---
+
+### Get By Id
+
+```java
+@GetMapping("/{id}")
+public CategoryResponse getById(@PathVariable Long id) {
+    return service.getById(id);
+}
+```
+
+---
+
+### Update
+
+```java
+@PutMapping("/{id}")
+public CategoryResponse update(
+        @PathVariable Long id,
+        @RequestBody CategoryRequest request) {
+
+    return service.update(id, request);
+}
+```
+
+---
+
+### Delete
+
+```java
+@DeleteMapping("/{id}")
+public ResponseEntity<Void> delete(@PathVariable Long id) {
+
+    service.delete(id);
+
+    return ResponseEntity.noContent().build();
+}
+```
+
+---
+
+# Step 12: Test in Postman
+
+### Create
+
+```http
+POST /api/categories
+```
+
+Body
+
+```json
+{
+  "name": "Electronics",
+  "description": "Electronic products"
+}
+```
+
+---
+
+### Get All
+
+```http
+GET /api/categories
+```
+
+---
+
+### Get One
+
+```http
+GET /api/categories/1
+```
+
+---
+
+### Update
+
+```http
+PUT /api/categories/1
+```
+
+```json
+{
+  "name": "Mobiles",
+  "description": "Smartphones and accessories"
+}
+```
+
+---
+
+### Delete
+
+```http
+DELETE /api/categories/1
+```
+
+---
+
+# What You've Practiced
+
+After this module, you'll have hands-on experience with:
+
+* ✅ Entity mapping
+* ✅ `JpaRepository`
+* ✅ `save()`
+* ✅ `findAll()`
+* ✅ `findById()`
+* ✅ `existsById()`
+* ✅ `deleteById()`
+* ✅ DTO pattern
+* ✅ Service layer
+* ✅ Controller layer
+* ✅ Bean Validation (`@Valid`, `@NotBlank`)
+* ✅ REST API design
+* ✅ Basic exception handling
+
+---
+
+## Next Phase: Product Module
+
+The Product module is where Spring Data JPA becomes much more interesting. We'll introduce:
+
+* `@ManyToOne` relationship (`Product` → `Category`)
+* Primary key generation
+* Derived query methods (`findByNameContaining`, `findByPriceBetween`, etc.)
+* Custom repository methods
+* Validation
+* Searching products by category
+
+This is the point where you'll start using Data JPA features beyond basic CRUD.

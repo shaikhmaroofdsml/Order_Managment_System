@@ -1,0 +1,453 @@
+
+Excellent. Now you're entering the phase that many developers struggle with.
+
+# Phase 5: Non-Select Custom Queries (`@Modifying` + `@Transactional`)
+
+Your notes explain that **`@Query` alone is enough for SELECT operations**, but for **UPDATE, DELETE, and INSERT** you must also use:
+
+* `@Modifying`
+* `@Transactional`
+
+
+
+---
+
+# Why Do We Need @Modifying?
+
+Suppose you want to increase the stock of a product.
+
+Instead of:
+
+```java
+Product product = repository.findById(id).get();
+product.setStock(product.getStock() + 10);
+repository.save(product);
+```
+
+You can execute a direct update query.
+
+```sql
+UPDATE products
+SET stock = stock + 10
+WHERE id = 1;
+```
+
+Spring Data JPA allows this using `@Query`.
+
+---
+
+# Step 1: Increase Stock
+
+Repository
+
+```java
+@Modifying
+@Transactional
+@Query("""
+UPDATE Product
+SET stock = stock + :qty
+WHERE id = :id
+""")
+int increaseStock(
+        @Param("id") Long id,
+        @Param("qty") Integer qty);
+```
+
+Returns
+
+```text
+1
+```
+
+means
+
+```text
+1 row updated
+```
+
+---
+
+# Step 2: Decrease Stock
+
+```java
+@Modifying
+@Transactional
+@Query("""
+UPDATE Product
+SET stock = stock - :qty
+WHERE id = :id
+""")
+int decreaseStock(
+        @Param("id") Long id,
+        @Param("qty") Integer qty);
+```
+
+---
+
+Example
+
+Current stock
+
+```text
+20
+```
+
+Call
+
+```text
+decreaseStock(1,5)
+```
+
+Database
+
+```text
+15
+```
+
+---
+
+# Step 3: Update Price
+
+```java
+@Modifying
+@Transactional
+@Query("""
+UPDATE Product
+SET price=:price
+WHERE id=:id
+""")
+int updatePrice(
+        @Param("id") Long id,
+        @Param("price") Double price);
+```
+
+---
+
+API
+
+```http
+PUT /products/1/price?price=999
+```
+
+---
+
+# Step 4: Rename Product
+
+```java
+@Modifying
+@Transactional
+@Query("""
+UPDATE Product
+SET name=:name
+WHERE id=:id
+""")
+int updateName(
+        @Param("id") Long id,
+        @Param("name") String name);
+```
+
+---
+
+# Step 5: Delete Using JPQL
+
+```java
+@Modifying
+@Transactional
+@Query("""
+DELETE
+FROM Product
+WHERE id=:id
+""")
+int deleteProduct(
+        @Param("id") Long id);
+```
+
+Equivalent SQL
+
+```sql
+DELETE FROM products
+WHERE id=?
+```
+
+---
+
+# Step 6: Delete by Category
+
+```java
+@Modifying
+@Transactional
+@Query("""
+DELETE
+FROM Product
+WHERE category.id=:id
+""")
+int deleteProductsByCategory(
+        @Param("id")
+        Long categoryId);
+```
+
+Useful when removing an entire category and its products.
+
+---
+
+# Step 7: Native INSERT
+
+Normally we use
+
+```java
+repository.save(product);
+```
+
+But for learning purposes:
+
+```java
+@Modifying
+@Transactional
+@Query(value="""
+INSERT INTO products
+(name,price,stock,description,category_id)
+VALUES
+(:name,:price,:stock,:description,:category)
+""",
+nativeQuery=true)
+void insertProduct(
+        @Param("name") String name,
+        @Param("price") Double price,
+        @Param("stock") Integer stock,
+        @Param("description") String description,
+        @Param("category") Long categoryId);
+```
+
+> **Note:** In real Spring Boot applications, `save()` is almost always preferred for inserts. Native `INSERT` queries are mainly used in special cases or for learning.
+
+---
+
+# Step 8: Soft Delete
+
+Instead of deleting records permanently, mark them as inactive.
+
+## Update Entity
+
+```java
+@Column(nullable = false)
+private Boolean active = true;
+```
+
+Now the table becomes
+
+```text
+products
+
+id
+
+name
+
+price
+
+stock
+
+active
+```
+
+---
+
+Repository
+
+```java
+@Modifying
+@Transactional
+@Query("""
+UPDATE Product
+SET active=false
+WHERE id=:id
+""")
+int softDelete(
+        @Param("id") Long id);
+```
+
+Nothing is deleted.
+
+Database
+
+```text
+Before
+
+id=1
+
+active=true
+```
+
+↓
+
+After
+
+```text
+id=1
+
+active=false
+```
+
+This follows the soft delete approach described in your notes.
+
+---
+
+# Restore Product
+
+```java
+@Modifying
+@Transactional
+@Query("""
+UPDATE Product
+SET active=true
+WHERE id=:id
+""")
+int restoreProduct(
+        @Param("id") Long id);
+```
+
+---
+
+# Step 9: Fetch Only Active Products
+
+```java
+@Query("""
+FROM Product
+WHERE active=true
+""")
+List<Product> activeProducts();
+```
+
+Now deleted products won't appear.
+
+---
+
+# Step 10: Bulk Price Update
+
+Festival Sale
+
+Reduce all prices by 10%
+
+```java
+@Modifying
+@Transactional
+@Query("""
+UPDATE Product
+SET price=price*0.90
+""")
+int applyFestivalDiscount();
+```
+
+---
+
+# Step 11: Bulk Stock Update
+
+```java
+@Modifying
+@Transactional
+@Query("""
+UPDATE Product
+SET stock=stock+100
+WHERE category.id=:category
+""")
+int refillStock(
+        @Param("category")
+        Long categoryId);
+```
+
+---
+
+# Step 12: Service Layer
+
+```java
+public void increaseStock(Long id,Integer qty){
+
+    repository.increaseStock(id,qty);
+
+}
+```
+
+Controller
+
+```java
+@PatchMapping("/{id}/stock/add")
+public void addStock(
+        @PathVariable Long id,
+        @RequestParam Integer qty){
+
+    service.increaseStock(id,qty);
+
+}
+```
+
+---
+
+# APIs to Build
+
+| Method | API                           | Purpose         |
+| ------ | ----------------------------- | --------------- |
+| PATCH  | `/products/{id}/stock/add`    | Increase stock  |
+| PATCH  | `/products/{id}/stock/remove` | Decrease stock  |
+| PATCH  | `/products/{id}/price`        | Update price    |
+| PATCH  | `/products/{id}/soft-delete`  | Soft delete     |
+| PATCH  | `/products/{id}/restore`      | Restore product |
+| DELETE | `/products/{id}`              | Hard delete     |
+| PATCH  | `/products/discount`          | Apply discount  |
+| PATCH  | `/products/refill`            | Refill stock    |
+
+---
+
+# Challenge
+
+Implement these repository methods:
+
+```java
+increaseStock()
+
+decreaseStock()
+
+updatePrice()
+
+softDelete()
+
+restoreProduct()
+
+deleteProduct()
+
+deleteProductsByCategory()
+
+applyFestivalDiscount()
+
+refillStock()
+```
+
+Test each endpoint with Postman and verify the changes in MySQL.
+
+---
+
+# What You've Learned
+
+By completing this phase, you've gained hands-on experience with:
+
+* ✅ `@Modifying`
+* ✅ `@Transactional`
+* ✅ Custom `UPDATE`
+* ✅ Custom `DELETE`
+* ✅ Native `INSERT`
+* ✅ Bulk updates
+* ✅ Soft delete
+* ✅ Restore operations
+* ✅ Business-oriented update queries
+
+These topics correspond directly to the "Non Select Operations using Data JPA custom query" and "Soft Delete" sections in your notes.
+
+---
+
+# Next Phase (Very Important)
+
+Next we'll build **Pagination, Sorting, and Filtering**, where you'll learn to create production-ready APIs like:
+
+* `GET /products?page=0&size=10`
+* `GET /products?page=1&size=20&sort=price,desc`
+* `GET /products/search?category=Electronics&page=0&size=5`
+
+These features are essential for any real-world application and align with the `JpaRepository` pagination and sorting capabilities covered in your notes.
