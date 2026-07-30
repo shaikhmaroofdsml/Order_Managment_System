@@ -31,4 +31,8 @@ public class Product {
     @ManyToOne // Many Product belong to same category.
     @JoinColumn(name = "category_id")
     private Category category;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean active = true;
 }

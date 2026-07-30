@@ -2,12 +2,97 @@ package com.ecommerce.order_management_system.repo;
 
 import com.ecommerce.order_management_system.entity.Category;
 import com.ecommerce.order_management_system.entity.Product;
+import jakarta.transaction.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
 public interface ProductRepository extends JpaRepository<Product,Long> {
 
+
+    @Modifying
+    @Transactional
+    @Query("""
+        UPDATE Product
+        SET stock = stock + :qty
+        WHERE id = :id
+    """)
+    int increaseStock(@Param("id") Long id,
+                      @Param("qty") Integer qty);
+
+        @Modifying
+    @Transactional
+    @Query("""
+        UPDATE Product
+        SET active = false
+        WHERE id = :id
+    """)
+    int softDelete(@Param("id") Long id);
+
+    @Modifying
+    @Transactional
+    @Query("""
+        UPDATE Product
+        SET active = true
+        WHERE id = :id
+    """)
+    int restore(@Param("id") Long id);
+
+//
+//@Modifying
+//@Transactional
+//@Query("""
+//        UPDATE Product
+//        SET stock = stock - :qty
+//        WHERE id = :id
+//    """)
+//int decreaseStock(@Param("id") Long id,
+//                  @Param("qty") Integer qty);
+//
+//    @Modifying
+//    @Transactional
+//    @Query("""
+//        UPDATE Product
+//        SET price = :price
+//        WHERE id = :id
+//    """)
+//    int updatePrice(@Param("id") Long id,
+//                    @Param("price") Double price);
+//
+
+//
+//    @Modifying
+//    @Transactional
+//    @Query("""
+//        DELETE FROM Product
+//        WHERE id = :id
+//    """)
+//    int deleteProduct(@Param("id") Long id);
+//
+//    @Modifying
+//    @Transactional
+//    @Query("""
+//        UPDATE Product
+//        SET price = price * 0.90
+//    """)
+//    int applyFestivalDiscount();
+//
+//    @Modifying
+//    @Transactional
+//    @Query("""
+//        UPDATE Product
+//        SET stock = stock + 100
+//        WHERE category.id = :categoryId
+//    """)
+//    int refillStock(@Param("categoryId") Long categoryId);
+     //
+
+
+
+    ///         ==================================
 
     List<Product> findByName(String name);
 
@@ -27,8 +112,8 @@ public interface ProductRepository extends JpaRepository<Product,Long> {
 //
 //    List<Product> findByPriceBetween(Double min, Double max);
 //
-//    List<Product> findByStockLessThan(Integer stock);
-//
+    List<Product> findByStockLessThan(Integer stock);
+
 //    List<Product> findByCategory(Category category);
 //
 //    List<Product> findByCategoryName(String categoryName);

@@ -20,6 +20,51 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryRepository categoryRepository;
 
     @Override
+    public void increaseStock(Long id, Integer qty) {
+        productRepository.increaseStock(id, qty);
+    }
+
+    @Override
+    public void softDelete(Long id) {
+
+        productRepository.softDelete(id);
+    }
+
+    @Override
+    public void restore(Long id) {
+
+        productRepository.restore(id);
+    }
+
+
+
+//    @Override
+//    public void decreaseStock(Long id, Integer qty) {
+//        productRepository.decreaseStock(id, qty);
+//    }
+//
+//    @Override
+//    public void updatePrice(Long id, Double price) {
+//        productRepository.updatePrice(id, price);
+//    }
+//
+
+//    }
+//
+//    @Override
+//    public void applyFestivalDiscount() {
+//        productRepository.applyFestivalDiscount();
+//    }
+//
+//    @Override
+//    public void refillStock(Long categoryId) {
+//        productRepository.refillStock(categoryId);
+//    }
+//
+
+
+    /// /////////  CRUD Operations started......   ///////////
+    @Override
     public ProductResponse create(ProductRequest request) {
 
         Category category = categoryRepository.findById(request.getCategory_Id())
@@ -95,7 +140,7 @@ public class ProductServiceImpl implements ProductService {
                 .map(this::mapToResponse)
                 .toList();
     }
-
+    // findByNameContaining()
     @Override
     public List<ProductResponse> findByNameContaining(String keyword) {
 
@@ -105,7 +150,14 @@ public class ProductServiceImpl implements ProductService {
                 .toList();
     }
 
-    // findByNameContaining()
+    @Override
+    public List<ProductResponse> findByStockLessThan(Integer stock) {
+        return productRepository.findByStockLessThan(stock)
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+
+    }
 
 
     /// /////////////////////// Helper method /////////////////////////
