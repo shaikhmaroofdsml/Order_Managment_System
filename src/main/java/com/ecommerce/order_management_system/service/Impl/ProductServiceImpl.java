@@ -26,7 +26,9 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
 
-    // Specification
+
+
+    // JPASpecificationExecutor
 
     @Override
     public Page<ProductResponseDTO> search(ProductSearchRequestDTO request) {
