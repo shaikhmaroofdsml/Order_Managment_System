@@ -1,6 +1,7 @@
 package com.ecommerce.order_management_system.service.Impl;
 
 import com.ecommerce.order_management_system.dto.OrderItemRequestDTO;
+import com.ecommerce.order_management_system.dto.OrderItemResponseDTO;
 import com.ecommerce.order_management_system.dto.OrderRequestDTO;
 import com.ecommerce.order_management_system.dto.OrderResponseDTO;
 import com.ecommerce.order_management_system.entity.*;
@@ -33,6 +34,7 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional // Begin transaction
     public OrderResponseDTO placeOrder(OrderRequestDTO request) {
+
 
         // validate customer
         Customer customer = customerRepository.findById(request.getCustomerId())
@@ -84,7 +86,7 @@ public class OrderServiceImpl implements OrderService {
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
             orderItem.setProduct(product);
-            orderItem.setQty(itemRequest.getQuantity());
+            orderItem.setQuantity(itemRequest.getQuantity());
             orderItem.setPrice(product.getPrice());
 
             orderItem.setOrder(order);
@@ -115,10 +117,62 @@ public class OrderServiceImpl implements OrderService {
         // save payment
         paymentRepository.save(payment);
 
+
+        return mapToResponse(order);
+
+//        return OrderResponseDTO.builder()
+//                .orderId(order.getId())
+//                .totalAmount(totalAmount)
+//                .status(order.getStatus())
+//                .build();
+    }
+
+
+
+    // getOrders
+
+    @Override
+    public OrderResponseDTO getOrder(Long id) {
+
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() ->
+                        new RuntimeException("Order not found with id: " + id));
+
+        return mapToResponse(order);
+    }
+
+    // find Order by using customer id
+
+    @Override
+    public List<OrderResponseDTO> getCustomerOrders(Long customerId) {
+       List<Order> orders = orderRepository.findByCustomerId(customerId);
+
+        return orders.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+
+    // Helper method
+
+    public OrderResponseDTO mapToResponse(Order order) {
+
+        List<OrderItemResponseDTO> items = order.getOrderItems()
+                .stream()
+                .map(item -> OrderItemResponseDTO.builder()
+                        .productName(item.getProduct().getName())
+                        .quantity(item.getQuantity())
+                        .price(item.getPrice())
+                        .build())
+                .toList();
+
         return OrderResponseDTO.builder()
                 .orderId(order.getId())
-                .totalAmount(totalAmount)
+                .customerName(order.getCustomer().getName())
+                .orderDate(order.getOrderDate())
+                .totalAmount(order.getTotalAmount())
                 .status(order.getStatus())
+                .items(items)
                 .build();
     }
 

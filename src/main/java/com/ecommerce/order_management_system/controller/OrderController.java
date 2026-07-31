@@ -5,10 +5,9 @@ import com.ecommerce.order_management_system.dto.OrderRequestDTO;
 import com.ecommerce.order_management_system.dto.OrderResponseDTO;
 import com.ecommerce.order_management_system.service.OrderService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -25,5 +24,17 @@ public class OrderController {
 
     }
 
+    @GetMapping("/{id}")
+    public OrderResponseDTO getOrder(@PathVariable Long id) {
+
+        return orderService.getOrder(id);
+    }
+
+    @GetMapping("/customer/{customerId}")
+    public List<OrderResponseDTO> getCustomerOrders(
+            @PathVariable Long customerId) {
+
+        return orderService.getCustomerOrders(customerId);
+    }
 
 }
