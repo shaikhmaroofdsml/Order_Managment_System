@@ -36,5 +36,13 @@ public class OrderController {
 
         return orderService.getCustomerOrders(customerId);
     }
+    // Cancel Order
+
+    @PutMapping("/{id}/cancel")
+    public String cancelOrder(@PathVariable Long id)
+    {
+        orderService.cancelOrder(id);
+        return "order cancelled successfully";
+    }
 
 }

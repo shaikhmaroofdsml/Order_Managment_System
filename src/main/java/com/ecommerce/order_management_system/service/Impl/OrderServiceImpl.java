@@ -152,6 +152,51 @@ public class OrderServiceImpl implements OrderService {
                 .toList();
     }
 
+    // Cancel Order and Restore stock.(if customer click cancel order)
+
+    @Override
+    @Transactional
+    public void cancelOrder(Long orderId) {
+        Order order =
+                orderRepository.findById(orderId)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Order not found"));
+
+        if(order.getStatus()
+                .equalsIgnoreCase("CANCELLED")){
+
+            throw new RuntimeException(
+                    "Order already cancelled.");
+
+        }
+
+        for(OrderItem item : order.getOrderItems()){
+
+            Product product = item.getProduct();
+
+            product.setStock(product.getStock() + item.getQuantity());
+
+            productRepository.save(product);
+
+        }
+        order.setStatus("CANCELLED");
+        orderRepository.save(order);
+
+        Payment payment =
+                paymentRepository
+                        .findByOrder(order)
+                        .orElseThrow(() ->
+                                new RuntimeException(
+                                        "Payment not found"));
+
+        payment.setStatus("REFUNDED");
+
+        paymentRepository.save(payment);
+
+
+    }
+
 
     // Helper method
 
@@ -175,6 +220,8 @@ public class OrderServiceImpl implements OrderService {
                 .items(items)
                 .build();
     }
+
+
 
 
 }
