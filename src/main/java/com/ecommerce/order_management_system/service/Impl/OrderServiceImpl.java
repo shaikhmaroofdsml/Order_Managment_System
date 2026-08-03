@@ -5,6 +5,9 @@ import com.ecommerce.order_management_system.dto.OrderItemResponseDTO;
 import com.ecommerce.order_management_system.dto.OrderRequestDTO;
 import com.ecommerce.order_management_system.dto.OrderResponseDTO;
 import com.ecommerce.order_management_system.entity.*;
+import com.ecommerce.order_management_system.exception.CustomerNotFoundException;
+import com.ecommerce.order_management_system.exception.OrderNotFoundException;
+import com.ecommerce.order_management_system.exception.ProductNotFoundException;
 import com.ecommerce.order_management_system.repo.CustomerRepository;
 import com.ecommerce.order_management_system.repo.OrderRepository;
 import com.ecommerce.order_management_system.repo.PaymentRepository;
@@ -39,7 +42,7 @@ public class OrderServiceImpl implements OrderService {
         // validate customer
         Customer customer = customerRepository.findById(request.getCustomerId())
                 .orElseThrow(()->
-                        new RuntimeException(("Customer not found")));
+                        new CustomerNotFoundException(("Customer not found")));
 
         // validate empty order
         if(request.getItems() == null || request.getItems().isEmpty())
@@ -64,7 +67,7 @@ public class OrderServiceImpl implements OrderService {
         {
             Product product = productRepository.findById(itemRequest.getProductId())
                     .orElseThrow(()->
-                            new RuntimeException("product not found ...."));
+                            new ProductNotFoundException("product not found ...."));
 
 
             if (product.getActive() != null && !product.getActive()) {
@@ -136,7 +139,7 @@ public class OrderServiceImpl implements OrderService {
 
         Order order = orderRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Order not found with id: " + id));
+                        new OrderNotFoundException("Order not found with id: " + id));
 
         return mapToResponse(order);
     }
@@ -160,7 +163,7 @@ public class OrderServiceImpl implements OrderService {
         Order order =
                 orderRepository.findById(orderId)
                         .orElseThrow(() ->
-                                new RuntimeException(
+                                new OrderNotFoundException(
                                         "Order not found"));
 
         if(order.getStatus()
@@ -179,21 +182,21 @@ public class OrderServiceImpl implements OrderService {
 
             productRepository.save(product);
 
+            order.setStatus("CANCELLED");
+            orderRepository.save(order);
+
+            Payment payment =
+                    paymentRepository
+                            .findByOrder(order)
+                            .orElseThrow(() ->
+                                    new RuntimeException(
+                                            "Payment not found"));
+
+            payment.setStatus("REFUNDED");
+
+            paymentRepository.save(payment);
+
         }
-        order.setStatus("CANCELLED");
-        orderRepository.save(order);
-
-        Payment payment =
-                paymentRepository
-                        .findByOrder(order)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "Payment not found"));
-
-        payment.setStatus("REFUNDED");
-
-        paymentRepository.save(payment);
-
 
     }
 

@@ -5,6 +5,8 @@ import com.ecommerce.order_management_system.dto.ProductResponseDTO;
 import com.ecommerce.order_management_system.dto.ProductSearchRequestDTO;
 import com.ecommerce.order_management_system.entity.Category;
 import com.ecommerce.order_management_system.entity.Product;
+import com.ecommerce.order_management_system.exception.CategoryNotFoundException;
+import com.ecommerce.order_management_system.exception.ProductNotFoundException;
 import com.ecommerce.order_management_system.repo.CategoryRepository;
 import com.ecommerce.order_management_system.repo.ProductRepository;
 import com.ecommerce.order_management_system.service.ProductService;
@@ -216,7 +218,8 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponseDTO create(ProductRequestDTO request) {
 
         Category category = categoryRepository.findById(request.getCategory_Id())
-                .orElseThrow(() -> new RuntimeException("Category Not Found"));
+                .orElseThrow(() -> new CategoryNotFoundException(
+                        "Category not found with id: " + request.getCategory_Id()));
 
         Product product = Product.builder()
                 .name(request.getName())
@@ -244,7 +247,8 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponseDTO getById(Long id) {
 
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product Not Found"));
+                .orElseThrow(() -> new ProductNotFoundException(
+                        "Product not found with id: " + id));
 
         return mapToResponse(product);
     }
@@ -253,10 +257,12 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponseDTO update(Long id, ProductRequestDTO request) {
 
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product Not Found"));
+                .orElseThrow(() -> new ProductNotFoundException(
+                        "Product not found with id: " + id));
 
         Category category = categoryRepository.findById(request.getCategory_Id())
-                .orElseThrow(() -> new RuntimeException("Category Not Found"));
+                .orElseThrow(() -> new CategoryNotFoundException(
+                        "Category not found with id: " + request.getCategory_Id()));
 
         product.setName(request.getName());
         product.setPrice(request.getPrice());
@@ -273,7 +279,8 @@ public class ProductServiceImpl implements ProductService {
     public void delete(Long id) {
 
         Product product = productRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Product Not Found"));
+                .orElseThrow(() ->new ProductNotFoundException(
+                        "Product not found with id: " + id));
 
         productRepository.delete(product);
     }

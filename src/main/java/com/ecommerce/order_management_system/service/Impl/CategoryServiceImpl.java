@@ -3,6 +3,8 @@ package com.ecommerce.order_management_system.service.Impl;
 import com.ecommerce.order_management_system.dto.CategoryRequestDTO;
 import com.ecommerce.order_management_system.dto.CategoryResponseDTO;
 import com.ecommerce.order_management_system.entity.Category;
+import com.ecommerce.order_management_system.exception.CategoryNotFoundException;
+import com.ecommerce.order_management_system.exception.CustomerNotFoundException;
 import com.ecommerce.order_management_system.repo.CategoryRepository;
 import com.ecommerce.order_management_system.service.CategoryService;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +49,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryResponseDTO getById(Long id) {
         Category category = categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category not Found ....."));
+                .orElseThrow(() -> new CategoryNotFoundException("Category not Found ....."));
 
         return CategoryResponseDTO.builder()
                 .id(category.getId())
@@ -59,7 +61,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public CategoryResponseDTO update(Long id, CategoryRequestDTO request) {
         Category category =  categoryRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Category Not Found..."));
+                .orElseThrow(() -> new CustomerNotFoundException("Category Not Found..."));
         category.setName(request.getName());
         category.setDescription(request.getDescription());
 
