@@ -2,10 +2,13 @@ package com.ecommerce.order_management_system.config;
 
 import com.ecommerce.order_management_system.service.Impl.UserDetailsServiceImpl;
 import lombok.AllArgsConstructor;
+import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -44,21 +47,10 @@ public class SecurityConfig {
 
         return http.build();
     }
-//
-//    @Bean
-//    public SecurityFilterChain securityFilterChain(HttpSecurity http)
-//            throws Exception {
-//
-//        http
-//                .csrf(csrf -> csrf.disable())
-//                .authenticationProvider(authenticationProvider())
-//                .authorizeHttpRequests(auth -> auth
-//                        .anyRequest().authenticated())
-//                .httpBasic(Customizer.withDefaults());
-//
-//        return http.build();
-//    }
+
     // Encryption
+
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -75,6 +67,27 @@ public class SecurityConfig {
         return provider;
     }
 
+    // AuthenticationManager
+
+
+    @Bean
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration configuration)
+            throws Exception {
+
+        return configuration.getAuthenticationManager();
+    }
+
+    // Temp Bean
+//    @Bean
+//    CommandLineRunner generatePassword(PasswordEncoder encoder) {
+//        return args -> {
+//            System.out.println(encoder.encode("admin123"));
+//        };
+//    }
+
 
 
 }
+
+
