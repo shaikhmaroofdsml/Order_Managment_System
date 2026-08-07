@@ -100,18 +100,4 @@ public class AuthServiceImpl implements AuthService {
 }
 //
 //POST /api/auth/login
-//        │
-//                ▼
-//AuthenticationManager
-//        │
-//                ▼
-//CustomUserDetailsService
-//        │
-//                ▼
-//Validate Email & Password
-//        │
-//                ▼
-//                JwtService.generateToken()
-//        │
-//                ▼
-//Return JWT Token
+//  AuthenticationManager -> CustomUserDetailsService -> Validate Email & Password -> JwtService.generateToken() -> Return JWT Token

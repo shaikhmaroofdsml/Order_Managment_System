@@ -86,10 +86,10 @@ public class JwtService {
                 && !isTokenExpired(token);
     }
 
-
+    // Refresh Token methods
 
 //    User Login -> AuthenticationManager ->CustomUserDetailsService->
 //    UserRepository -> Password Match -> JwtService.generateToken() -> JWT Returned
-
-
+//public String generateAccessToken(UserDetails userDetails);
+// public String generateRefreshToken(UserDetails userDetails);
 }
