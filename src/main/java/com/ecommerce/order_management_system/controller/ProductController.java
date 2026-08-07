@@ -51,6 +51,17 @@ public class ProductController {
 
         return ResponseEntity.noContent().build();
     }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ProductResponseDTO> updateProduct(
+            @PathVariable Long id,
+            @RequestBody ProductRequestDTO request) {
+
+        return ResponseEntity.ok(
+                productService.update(id, request));
+    }
+
     // Spring security end //
 
 

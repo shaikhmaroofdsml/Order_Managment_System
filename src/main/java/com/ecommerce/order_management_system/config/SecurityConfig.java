@@ -1,10 +1,8 @@
 package com.ecommerce.order_management_system.config;
 
 import com.ecommerce.order_management_system.security.JwtAuthenticationFilter;
-import com.ecommerce.order_management_system.service.Impl.UserDetailsServiceImpl;
-import lombok.AllArgsConstructor;
+import com.ecommerce.order_management_system.service.impl.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;

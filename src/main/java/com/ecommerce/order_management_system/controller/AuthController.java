@@ -3,9 +3,11 @@ package com.ecommerce.order_management_system.controller;
 
 import com.ecommerce.order_management_system.dto.AuthResponse;
 import com.ecommerce.order_management_system.dto.LoginRequest;
+import com.ecommerce.order_management_system.dto.UserRegisterRequestDTO;
 import com.ecommerce.order_management_system.service.AuthService;
-import com.ecommerce.order_management_system.service.Impl.AuthServiceImpl;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -32,6 +34,13 @@ public class AuthController {
     {
         System.out.println("Controller working fine .....");
         return ResponseEntity.ok(authService.login(request));
+
+    }
+
+    @PostMapping("/register")
+    public  ResponseEntity<AuthResponse> register(@Valid @RequestBody UserRegisterRequestDTO registerRequestDTO)
+    {
+        return  ResponseEntity.status(HttpStatus.CREATED).body(authService.register(registerRequestDTO));
 
     }
 }

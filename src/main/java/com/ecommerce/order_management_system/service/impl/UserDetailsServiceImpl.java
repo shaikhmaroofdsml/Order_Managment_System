@@ -1,9 +1,7 @@
-package com.ecommerce.order_management_system.service.Impl;
+package com.ecommerce.order_management_system.service.impl;
 
 import com.ecommerce.order_management_system.entity.User;
 import com.ecommerce.order_management_system.repo.UserRepository;
-import lombok.AllArgsConstructor;
-import org.springframework.boot.security.autoconfigure.SecurityProperties;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

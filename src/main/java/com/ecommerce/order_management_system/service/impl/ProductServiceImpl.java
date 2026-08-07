@@ -1,4 +1,4 @@
-package com.ecommerce.order_management_system.service.Impl;
+package com.ecommerce.order_management_system.service.impl;
 
 import com.ecommerce.order_management_system.dto.ProductRequestDTO;
 import com.ecommerce.order_management_system.dto.ProductResponseDTO;

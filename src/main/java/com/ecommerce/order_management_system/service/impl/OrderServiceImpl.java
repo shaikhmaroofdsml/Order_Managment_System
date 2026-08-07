@@ -1,4 +1,4 @@
-package com.ecommerce.order_management_system.service.Impl;
+package com.ecommerce.order_management_system.service.impl;
 
 import com.ecommerce.order_management_system.dto.OrderItemRequestDTO;
 import com.ecommerce.order_management_system.dto.OrderItemResponseDTO;
@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
