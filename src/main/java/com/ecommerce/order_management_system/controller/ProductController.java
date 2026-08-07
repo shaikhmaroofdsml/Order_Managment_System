@@ -7,6 +7,10 @@ import com.ecommerce.order_management_system.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,6 +23,43 @@ public class ProductController {
     private final ProductService productService;
 
 
+    // Restrict product creation to ADMIN only.
+   // Spring security start ...
+    @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ProductResponseDTO> create(
+            @RequestBody ProductRequestDTO request) {
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(productService.create(request));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','CUSTOMER')")
+    public List<ProductResponseDTO> getAll() {
+
+        return productService.getALl();
+
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> delete(
+            @PathVariable Long id) {
+
+        productService.delete(id);
+
+        return ResponseEntity.noContent().build();
+    }
+    // Spring security end //
+
+
+
+
+
+
+
+
     // specification
     @PostMapping("/specificationSearch")
     public Page<ProductResponseDTO> search(@RequestBody ProductSearchRequestDTO request){
@@ -26,9 +67,6 @@ public class ProductController {
         return productService.search(request);
 
     }
-
-
-
 
 
 //    Phase 6: Pagination, Sorting & Filtering
@@ -152,38 +190,38 @@ public class ProductController {
     /// ///////// CRUD OPERATIONS ///////////
 
     // create Product
-
-    @PostMapping
-    public ProductResponseDTO create(@Valid @RequestBody ProductRequestDTO request)
-    {
-        return productService.create(request);
-    }
-
-    @GetMapping
-    public List<ProductResponseDTO> getAll()
-    {
-        return  productService.getALl();
-    }
-
-    @GetMapping("/{id}")
-    public ProductResponseDTO getById(@PathVariable Long id)
-    {
-        return productService.getById(id);
-    }
-
-    @PutMapping("/{id}")
-    public ProductResponseDTO update(@PathVariable Long id, @Valid @RequestBody ProductRequestDTO request)
-    {
-        return productService.update(id,request);
-    }
-
-    @DeleteMapping("/{id}")
-    public String deleteProduct(@PathVariable Long id)
-    {
-        productService.delete(id);
-        return  "Product deleted successfully......";
-
-    }
+//
+//    @PostMapping
+//    public ProductResponseDTO create(@Valid @RequestBody ProductRequestDTO request)
+//    {
+//        return productService.create(request);
+//    }
+//
+//    @GetMapping
+//    public List<ProductResponseDTO> getAll()
+//    {
+//        return  productService.getALl();
+//    }
+//
+//    @GetMapping("/{id}")
+//    public ProductResponseDTO getById(@PathVariable Long id)
+//    {
+//        return productService.getById(id);
+//    }
+//
+//    @PutMapping("/{id}")
+//    public ProductResponseDTO update(@PathVariable Long id, @Valid @RequestBody ProductRequestDTO request)
+//    {
+//        return productService.update(id,request);
+//    }
+//
+//    @DeleteMapping("/{id}")
+//    public String deleteProduct(@PathVariable Long id)
+//    {
+//        productService.delete(id);
+//        return  "Product deleted successfully......";
+//
+//    }
 
 
     /// ////////////////////    findBy*****     //////////////////////////

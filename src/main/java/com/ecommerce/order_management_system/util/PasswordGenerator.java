@@ -11,4 +11,19 @@ public class PasswordGenerator implements CommandLineRunner {
         BCryptPasswordEncoder encode = new BCryptPasswordEncoder();
         System.out.println(encode.encode("admin@123"));
     }
+
+//    @Override
+//    public void run(String... args) {
+//
+//        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+//
+//        String password = "admin123";
+//
+//        String hash = encoder.encode(password);
+//
+//        System.out.println("Password : " + password);
+//        System.out.println("Hash : " + hash);
+//        System.out.println("Match : " + encoder.matches(password, hash));
+//
+//    }
 }

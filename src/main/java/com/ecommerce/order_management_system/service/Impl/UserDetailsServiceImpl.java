@@ -7,6 +7,7 @@ import org.springframework.boot.security.autoconfigure.SecurityProperties;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -27,6 +28,12 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
         System.out.println("Email = " + user.getEmail());
         System.out.println("Password from DB = " + user.getPassword());
+        System.out.println(
+                new BCryptPasswordEncoder().matches(
+                        "admin123",
+                        user.getPassword()
+                )
+        );
         System.out.println("Enabled = " + user.getEnabled());
         System.out.println("Role = " + user.getRole());
 
